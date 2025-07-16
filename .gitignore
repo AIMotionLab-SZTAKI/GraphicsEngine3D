@@ -1,0 +1,25 @@
+# FOLDER
+.vscode
+
+# CACHE
+__pycache__
+*.pyc
+*.pyc
+*.idea
+*.DS_store
+
+# 3D model cache
+*.obj.bin
+*.obj.json
+
+# User-specific configuration files
+.bash_logout
+.bashrc
+.profile
+.gitconfig
+.gnupg/
+.ssh/
+.dotnet/
+
+# Large files
+grid_seq.npy
