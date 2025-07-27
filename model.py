@@ -81,14 +81,15 @@ class DefaultOBJ(BaseModel):
                  normalize_dimensions:bool=False, center_obj:bool=False,
                  pos=(0, 0, 0), rot=(0, 0, 0), scale=(1, 1, 1)):
         
-        # Center the obj file before loading it
-        if center_obj:
-            print('The OBJ file centering is only executed if a new .obj file is added or updated. ' \
-            'Delete the cache files if the .obj file is updated.')
-            if not (Path(__file__).parent/path_obj).with_suffix('.obj.bin').exists():
+        # Center the obj file before loading it to the vbo
+        if center_obj and not vbo_name in app.mesh.vao.vbo.vbos:
+            if (Path(__file__).parent/path_obj).with_suffix('.obj.bin').exists():
+                print('The OBJ file centering is only executed if a new .obj file is added or updated. ' \
+                      'Delete the cache files if the .obj file is updated.')
+            else:
                 from utils import center_obj_file
                 center_obj_file(path=Path(__file__).parent/path_obj)
-                print('Obj file centered successfully.')
+                print(f'OBJ file {path_obj} centered successfully.')
 
         # Add vbo if it does not exist
         if not vbo_name in app.mesh.vao.vbo.vbos: # Only create the VBO once
