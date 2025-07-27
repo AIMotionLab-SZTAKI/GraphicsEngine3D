@@ -2,6 +2,10 @@ import numpy as np
 from PIL import Image
 import itertools
 import matplotlib as mpl
+import pygame as pg
+import moderngl as mgl
+from pathlib import Path
+import pickle as pkl
 
 def getColorMap():
     cmap = mpl.colormaps['magma'].resampled(255)
@@ -59,57 +63,62 @@ def convert_grid_seq_to_instancelist(grid_seq):
 
     return grid_seq_dynamic_instancelist
 
-def convert_heightmap_to_terrain_obj(heightmap, obj_path, resolution=1.0):
+def convert_meshgrid_to_terrain_obj(X, Y, Z, obj_path):
     """
-    Converts a 2D numpy heightmap to a smooth surface and exports as OBJ.
-    :param heightmap: 2D numpy array of heights
+    Converts meshgrid coordinates (X, Y, Z) to a smooth surface and exports as OBJ.
+    The meshgrid is normalized to fit within a 2x2x2 cube while preserving aspect ratios.
+    :param X: 2D numpy array of X coordinates
+    :param Y: 2D numpy array of Y coordinates
+    :param Z: 2D numpy array of Z coordinates (heights)
     :param obj_path: Output OBJ file path
-    :param resolution: scale factor for every direction (X, Y, Z)
     """
-    h, w = heightmap.shape
-    x = np.arange(w)
-    y = np.arange(h)
-    X, Y = np.meshgrid(x, y)
-    Z = heightmap
+    # Ensure all arrays have the same shape
+    assert X.shape == Y.shape == Z.shape, "X, Y, Z must have the same shape"
+    
+    h, w = Z.shape
+    
+    # Calculate the ranges for each axis
+    x_range = X.max() - X.min()
+    y_range = Y.max() - Y.min()
+    z_range = Z.max() - Z.min()
+    
+    # Find the largest dimension to scale by
+    max_range = max(x_range, y_range, z_range)
+    
+    # Avoid division by zero
+    if max_range == 0:
+        max_range = 1.0
+    
+    # Scale factor to fit within 2x2x2 cube
+    scale_factor = 2.0 / max_range
+    
+    # Center and scale the coordinates
+    X_centered = (X - (X.max() + X.min()) / 2) * scale_factor
+    Y_centered = (Y - (Y.max() + Y.min()) / 2) * scale_factor
+    Z_centered = (Z - (Z.max() + Z.min()) / 2) * scale_factor
+    
+    # Flatten for OBJ vertices
+    vertices = np.column_stack((X_centered.ravel(), Y_centered.ravel(), Z_centered.ravel()))
 
-    # Get ranges for each axis
-    x_range = w - 1 if w > 1 else 1
-    y_range = h - 1 if h > 1 else 1
-    z_range = np.max(Z) - np.min(Z) if np.max(Z) > np.min(Z) else 1
-
-    # Normalize to [0,1] and scale to rectangle
-    Xs = (X - X.min()) / x_range
-    Ys = (Y - Y.min()) / y_range
-    Zs = (Z - np.min(Z)) / z_range
-
-    # Center the mesh
-    Xs = (Xs - 0.5) * x_range * resolution
-    Ys = (Ys - 0.5) * y_range * resolution
-    Zs = (Zs - 0.5) * z_range * resolution
-
-    # Flatten for OBJ
-    vertices = np.column_stack((Xs.ravel(), Ys.ravel(), Zs.ravel()))
-
-    # Compute normals using central differences (on scaled Z)
-    dzdx = np.gradient(Zs, axis=1)
-    dzdy = np.gradient(Zs, axis=0)
-    normals = np.dstack((-dzdx, -dzdy, np.ones_like(Zs)))
+    # Compute normals using central differences on the scaled coordinates
+    dzdx = np.gradient(Z_centered, X_centered[0, :], axis=1)  # gradient along x-axis
+    dzdy = np.gradient(Z_centered, Y_centered[:, 0], axis=0)  # gradient along y-axis
+    normals = np.dstack((-dzdx, -dzdy, np.ones_like(Z_centered)))
     n_flat = normals / np.linalg.norm(normals, axis=2, keepdims=True)
     n_flat = n_flat.reshape(-1, 3)
 
-    # Texture coordinates (map X, Y to [0,1])
-    nrows, ncols = Z.shape
-    u = (X - X.min()) / (X.max() - X.min()) if X.max() > X.min() else X
-    v = (Y - Y.min()) / (Y.max() - Y.min()) if Y.max() > Y.min() else Y
+    # Texture coordinates (map original X, Y to [0,1])
+    u = (X - X.min()) / (X.max() - X.min()) if X.max() > X.min() else np.zeros_like(X)
+    v = (Y - Y.min()) / (Y.max() - Y.min()) if Y.max() > Y.min() else np.zeros_like(Y)
     texcoords = np.column_stack((u.ravel(), v.ravel()))
 
     # Faces (two triangles per quad, counter-clockwise)
     faces = []
-    for i in range(nrows-1):
-        for j in range(ncols-1):
-            idx = i * ncols + j
+    for i in range(h-1):
+        for j in range(w-1):
+            idx = i * w + j
             idx_right = idx + 1
-            idx_down = idx + ncols
+            idx_down = idx + w
             idx_down_right = idx_down + 1
             # Triangle 1 (CCW)
             faces.append((idx+1, idx_right+1, idx_down+1))
@@ -152,8 +161,71 @@ def convert_heightmap_to_terrain_texture(heightmap, png_path):
     img = Image.fromarray(rgb, 'RGB')
     img.save(png_path)
 
-def main():
-    from pathlib import Path
+def create_texture_from_rgba(ctx, rgba, size=(1, 1)):
+    """
+    Create a solid color texture from RGBA values.
+    
+    Args:
+        rgba: Tuple of (r, g, b, a) values (0-255)
+        size: Tuple of (width, height) for texture size, default (1, 1)
+    
+    Returns:
+        ModernGL texture object
+    """
+    # Ensure RGBA values are integers in range 0-255
+    r, g, b, a = [int(max(0, min(255, val))) for val in rgba]
+    
+    # Create pygame surface with the specified size and RGBA format
+    surface = pg.Surface(size, pg.SRCALPHA, 32)
+    surface.fill((r, g, b, a))
+    
+    # Convert to string data for ModernGL
+    texture_data = pg.image.tostring(surface, 'RGBA')
+    
+    # Create ModernGL texture
+    texture = ctx.texture(size=size, components=4, data=texture_data)
+    
+    # Apply same settings as get_texture
+    texture.filter = (mgl.LINEAR_MIPMAP_LINEAR, mgl.LINEAR)
+    texture.build_mipmaps()
+    texture.anisotropy = 32.0
+    
+    return texture
+
+def center_obj_file(path):
+    ''' Center the vertices of an OBJ file around the origin and comment out mtl lines.'''
+    vertices = []
+    lines = []
+
+    with open(path, 'r') as f:
+        for line in f:
+            if line.startswith('v '):
+                parts = line.strip().split()
+                vertex = list(map(float, parts[1:4]))
+                vertices.append(vertex)
+            lines.append(line)
+
+    vertices = np.array(vertices)
+    centroid = np.mean(vertices, axis=0)
+    centered_vertices = vertices - centroid
+
+    vert_idx = 0
+    with open(path, 'w') as f:
+        for line in lines:
+            if line.startswith('v '):
+                v = centered_vertices[vert_idx]
+                f.write(f"v {v[0]:.6f} {v[1]:.6f} {v[2]:.6f}\n")
+                vert_idx += 1
+            elif 'mtl' in line:
+                # Comment out lines containing 'mtl'
+                if not line.startswith('#'):
+                    f.write(f"#{line}")
+                else:
+                    f.write(line)
+            else:
+                f.write(line)
+
+def get_demo_heightmap_from_grid_static():
     grid_static_path = Path(__file__).parents[1] / 'Data/Processing/demo_5drones/grid_static.npz'
     grid_static = np.load(grid_static_path)['grid_static']  # shape: (x, y, z)
 
@@ -169,7 +241,6 @@ def main():
                 heightmap[i, j] = obs_indices[-1] / (z_dim - 1)
             else:
                 heightmap[i, j] = 0.0
-
 
     heightmap = heightmap * z_dim  # Scale to the original z dimension
     heightmap_path = Path(__file__).parents[1] / 'Data/Processing/demo_5drones/heightmap.npy'
@@ -187,12 +258,27 @@ def main():
     np.save(Path(__file__).parents[1]/'Data/Processing/demo_5drones/heightmap.npy', heightmap)
     '''
 
+
+def get_demo_data_for_obj_plans():
+    folder = Path(__file__).parent/'demo/demo_Mate'
+
+    path1 = np.load(folder/'back_and_forth_trajectory_1.npy')
+    path2 = np.load(folder/'ellipsoidal_trajectory_map_centered.npy')
+    path3 = np.load(folder/'ellipsoidal_trajectory_origin.npy')
+    world_dim = np.array([400e3, 400e3, 6e3], dtype=np.float32)
+
+    obj_plans = [{'id':'radar_0', 'type':'radar', 'path':path1,'color':(0,255,255,0.5),'world_dimensions':world_dim, 'dimension':80e3},
+                 {'id':'cone_0', 'type':'cone', 'path':path2,'color':(255,255,0,0.5),'world_dimensions':world_dim, 'dimension':60e3},
+                 {'id':'torus_0', 'type':'torus', 'path':path3,'color':(255,0,255,0.5),'world_dimensions':world_dim, 'dimension':40e3}]
     
+    with open(folder/'obj_plans.pkl', 'wb') as f:
+        pkl.dump(obj_plans, f)  
 
 
-
-
-
+def main():
+    #center_obj_file(Path(__file__).parent/'objects/obj/torus.obj') # DELETE CACHE BEFORE RUNNING
+    #get_demo_heightmap_from_grid_static()
+    get_demo_data_for_obj_plans()
 
 if __name__ == "__main__":
     main()

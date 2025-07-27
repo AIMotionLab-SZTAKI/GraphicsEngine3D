@@ -32,5 +32,4 @@ class Clock:
                                 f'Time: {self.time:.2f}s, '\
                                 f'Animation time: {self.time_animation:.2f}s, '\
                                 f'Frame: {self.frame_index}, '\
-                                f'FPS: {self.get_FPS():.0f}') 
-        # camera.get_camera_str()
+                                f'FPS: {self.get_FPS():.0f}')

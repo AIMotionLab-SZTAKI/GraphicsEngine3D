@@ -1,6 +1,5 @@
 from pathlib import Path
 import numpy as np
-import moderngl as mgl
 import pywavefront
 import stl # pip install numpy-stl
 
@@ -12,19 +11,16 @@ class VBO:
         [vbo.destroy() for vbo in self.vbos.values()]
 
 class BaseVBO:
-    def __init__(self, ctx, reserve = None, modify_vertices=False):
+    def __init__(self, ctx, reserve = None):
         self.ctx = ctx
-        self.vbo = self.get_vbo(reserve, modify_vertices=modify_vertices)
+        self.vbo = self.get_vbo(reserve)
         self.format: str = None
         self.attribs: list = None
 
-    def get_vbo(self, reserve=None, modify_vertices=False):
-        if reserve is None: vertex_data = self.get_vertex_data()
-
-        if modify_vertices and hasattr(self, 'modify_vertex_data') and callable(getattr(self, 'modify_vertex_data')):
-            vertex_data = self.modify_vertex_data(vertex_data)
-
-        vbo = self.ctx.buffer(vertex_data) if reserve is None else self.ctx.buffer(reserve = reserve) # optionally just RESERVE
+    def get_vbo(self, reserve=None):
+        if reserve is None: 
+            self.vertex_data = self.get_vertex_data()
+        vbo = self.ctx.buffer(self.vertex_data) if reserve is None else self.ctx.buffer(reserve=reserve) # optionally RESERVE
         return vbo
 
     def get_vertex_data(self): ...
@@ -83,9 +79,9 @@ class CubeDynamicInstanceVBO(BaseVBO):
         self.attribs = ['a_instance_index', 'a_instance_value']
 
 class DefaultOBJ_VBO(BaseVBO):
-    def __init__(self, app, file:str='objects/.../xxx.obj', modify_vertices=False):
+    def __init__(self, app, file:str='objects/.../xxx.obj'):
         self.file = Path(__file__).parent / file
-        super().__init__(app, modify_vertices=modify_vertices)
+        super().__init__(app)
         self.format = '2f 3f 3f'
         self.attribs = ['in_texcoord_0', 'in_normal', 'in_position']
         
@@ -95,24 +91,12 @@ class DefaultOBJ_VBO(BaseVBO):
         vertex_data = obj.vertices
         vertex_data = np.array(vertex_data, dtype='f4')
         return vertex_data
-
-    def modify_vertex_data(self, vertex_data):
-        # Normalize the vertex data to fit within a unit cube (1x1x1)
-        original_shape = vertex_data.shape          # Store the original shape to reshape later
-        vertex_data = vertex_data.reshape(-1, 3)    # Reshape the vertex data into a (N, 3) array
-        min_coords = np.min(vertex_data, axis=0)    # Calculate the min and max for each axis (x, y, z)
-        max_coords = np.max(vertex_data, axis=0)
-        bbox_size = max_coords - min_coords         # Compute the size of the bounding box
-        vertex_data = (vertex_data - min_coords) / np.max(bbox_size) - 0.5 # Scale the vertex data to fit within a unit cube (1x1x1) and Center at (0, 0, 0)
-        vertex_data = vertex_data.reshape(original_shape)   # Reshape back to the original shape
-
-        return vertex_data
     
 class DefaultSTL_VBO(BaseVBO):
-    def __init__(self, app, file:str='objects/.../xxx.stl', modify_vertices=False):
+    def __init__(self, app, file:str='objects/.../xxx.stl'):
         self.file = Path(__file__).parent / file
 
-        super().__init__(app,modify_vertices=modify_vertices)
+        super().__init__(app)
         self.format = '3f 3f'  # Assuming normals, vertices, and texture coordinates
         self.attribs = ['in_normal', 'in_position']
         
@@ -130,14 +114,6 @@ class DefaultSTL_VBO(BaseVBO):
         except Exception as e:
             print(f"Error loading STL file: {e}")
             return None
-
-    def modify_vertex_data(self, vertex_data):
-        # Normalize the vertex data to fit within a unit cube (1x1x1)
-        normals = vertex_data[:, :3]
-        vertices = vertex_data[:, 3:]
-        vertices = vertices / np.max(vertices)
-        vertex_data = np.hstack((normals, vertices))
-        return vertex_data
 
 class SplineVBO(BaseVBO):
     def __init__(self, ctx, reserve):

@@ -16,6 +16,7 @@ struct Light {
 uniform Light light;                // uniform: same for all instances 
 uniform sampler2D u_texture_0;      
 uniform vec3 camPos;                // camera position in the global coordinate system
+uniform float alpha;                // alpha value for transparency
 
 
 vec3 getLight(vec3 color) {
@@ -49,7 +50,7 @@ void main() {
     color = getLight(color);                // Lightning
     color = pow(color, 1 / vec3(gamma));    // gamma correction
 
-    fragColor = vec4(color, 1.0);
+    fragColor = vec4(color, alpha);
 }
 
 
