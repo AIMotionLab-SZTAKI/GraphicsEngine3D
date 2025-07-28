@@ -270,28 +270,24 @@ def get_demo_data_for_obj_plans():
     world_dim = np.array([400e3, 400e3, 6e3], dtype=np.float32)
 
     # DEBUG
-    #path4[:,4] = np.linspace(0, 2*np.pi, path4.shape[0])
+    path4[:,0] -= path4[0,0]
+    path4[:,6] = np.linspace(0, 2*np.pi, path4.shape[0])
     #path4[:,5] = 0
-    path4[:,6] = 0
-    path4[:,0] -= path4[0,0]  # start from t=0
+    #path4[:,6] = 0
 
     import matplotlib.pyplot as plt
-    # Plot all columns of pathdrone as a scatter plot
     plt.figure(figsize=(10, 6))
     for i in range(4, 7):
-        plt.scatter(range(path4.shape[0]), path4[:, i], label=f'Column {i}')
-    plt.xlabel('Index')
-    plt.ylabel('Value')
-    plt.title('Scatter Plot of pathdrone Columns')
+        plt.scatter(path4[:,0], path4[:, i], label=f'Column {i}')
     plt.legend()
     plt.tight_layout()
     plt.show()
     
 
-    obj_plans = [{'id':'radar_0', 'type':'radar', 'path':path1,'color':(0,255,255,0.5),'world_dimensions':world_dim, 'dimension':80e3},
-                 {'id':'cone_0', 'type':'cone', 'path':path2,'color':(255,255,0,0.5),'world_dimensions':world_dim, 'dimension':60e3},
-                 {'id':'torus_0', 'type':'torus', 'path':path3,'color':(255,0,255,0.5),'world_dimensions':world_dim, 'dimension':40e3},
-                 {'id':'drone_0', 'type':'drone', 'path':path4,'color':(0,0,0,1.0),'world_dimensions':world_dim, 'dimension':10e3}]
+    obj_plans = [{'id':'radar_0', 'type':'radar', 'path':path1,'color':(255,0,0,0.5),'world_dimensions':world_dim, 'dimension':80e3},
+                 {'id':'cone_0', 'type':'cone', 'path':path2,'color':(0,255,0,0.5),'world_dimensions':world_dim, 'dimension':60e3},
+                 {'id':'torus_0', 'type':'torus', 'path':path3,'color':(0,0,255,0.5),'world_dimensions':world_dim, 'dimension':40e3},
+                 {'id':'drone_0', 'type':'drone', 'path':path4,'color':(0,0,0,1.0),'world_dimensions':world_dim, 'dimension':20e3}]
     
     with open(folder/'obj_plans.pkl', 'wb') as f:
         pkl.dump(obj_plans, f)  
