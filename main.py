@@ -34,10 +34,12 @@ class GraphicsEngine:
         # self.ctx.front_face = 'cw'
         self.ctx.enable(flags=mgl.DEPTH_TEST | mgl.CULL_FACE | mgl.BLEND)
         
+        self.args = args
+
         self.clock  = Clock()
         self.data   = Data(self, args)
         self.light  = Light()
-        self.camera = Camera(self, position=(2,0.5,0), yaw=180,pitch=-20)
+        self.camera = Camera(self, position=(2,0.5,0), yaw=180, pitch=-20)
         self.mesh   = Mesh(self)
         self.scene  = Scene(self, self.data.scene)
         self.info_display = InfoDisplay(self)
@@ -89,7 +91,7 @@ class GraphicsEngine:
         data = self.ctx.screen.read()   # Read the pixel data from he framebuffer
         image = pg.image.frombytes(data, self.WIN_SIZE, 'RGB',True)
         os.makedirs(folder, exist_ok=True)
-        pg.image.save(image,f'{folder}/GraphicsEngine3D_{datetime.today().strftime('%Y%m%d_%H%M%S')}.png')
+        pg.image.save(image,f'{folder}/GraphicsEngine3D_{datetime.today().strftime("%Y%m%d_%H%M%S")}.png')
 
 def main():
     root_dir = Path(__file__).parent
