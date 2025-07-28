@@ -159,6 +159,9 @@ class Data:
 
             obj_plan['path'][:,1] = -obj_plan['path'][:,1]  # Flip x axis
             obj_plan['path'][:,[2,3]] = obj_plan['path'][:,[3,2]]  # Swap y and z
+            if obj_plan['path'].shape[1] >= 7: # Rotation information on indices 4,5,6
+                obj_plan['path'][:,4] = - obj_plan['path'][:,4]  # Flip x axis
+                obj_plan['path'][:,[5,6]] = obj_plan['path'][:,[6,5]]  # Swap y and z
 
             print(f"Object plan {obj_plan['id']} loaded: path shape: {obj_plan['path'].shape} start: {obj_plan['path'][0,1:4]}, dimension: {obj_plan['dimension']}, world dimensions: {obj_plan['world_dimensions']}")
 

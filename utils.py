@@ -264,15 +264,13 @@ def get_demo_data_for_obj_plans():
 
     path1 = np.load(folder/'back_and_forth_trajectory_1.npy')
     path2 = np.load(folder/'ellipsoidal_trajectory_map_centered.npy')
-    path3 = np.load(folder/'ellipsoidal_trajectory_origin.npy')
+    path3 = np.load(folder/'ellipsoidal_trajectory_map_origin.npy')
     world_dim = np.array([400e3, 400e3, 6e3], dtype=np.float32)
 
-    path1[:,4:6] = 0
-    path1[:,6] = np.linspace(0, 2*np.pi, path1.shape[0])  # Add yaw rotation
-
-    path2[:,4] = np.linspace(0, 2*np.pi, path2.shape[0])  # Add yaw rotation
-    path2[:,5] = np.linspace(0, 2*np.pi, path2.shape[0])  # Add yaw rotation
-    path2[:,6] = np.linspace(0, 2*np.pi, path2.shape[0])  # Add yaw rotation
+    # DEBUG
+    #path3[:,6] = np.linspace(0, 2*np.pi, path3.shape[0])
+    #path3[:,4] = 0
+    #path3[:,5] = 0
 
     obj_plans = [{'id':'radar_0', 'type':'radar', 'path':path1,'color':(0,255,255,0.5),'world_dimensions':world_dim, 'dimension':80e3},
                  {'id':'cone_0', 'type':'cone', 'path':path2,'color':(255,255,0,0.5),'world_dimensions':world_dim, 'dimension':60e3},

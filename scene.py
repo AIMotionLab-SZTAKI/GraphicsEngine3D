@@ -61,7 +61,8 @@ class Scene:
                                             rotation_available=True,
                                             normalize_dimensions=True,
                                             center_obj=True,
-                                            scale=2*obj_plan['dimension']/np.max(obj_plan['world_dimensions'])))
+                                            scale=2*obj_plan['dimension']/np.max(obj_plan['world_dimensions']),
+                                            alpha=obj_plan['color'][3]))
         '''
         self.add_object(DefaultOBJ(app, vao_name='cat', vbo_name='cat', tex_id='cat',
                                     path_obj='objects/cat/20430_Cat_v1_NEW.obj',

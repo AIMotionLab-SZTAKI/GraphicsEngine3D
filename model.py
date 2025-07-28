@@ -79,8 +79,8 @@ class DefaultOBJ(BaseModel):
                  path_obj='objects/terrain/terrain.obj', path_texture='objects/terrain/terrain.png',
                  path:np.ndarray=None, rotation_available:bool=False, 
                  normalize_dimensions:bool=False, center_obj:bool=False,
-                 pos=(0, 0, 0), rot=(0, 0, 0), scale=(1, 1, 1)):
-        
+                 pos=(0, 0, 0), rot=(0, 0, 0), scale=(1, 1, 1), **kwargs):
+
         # Center the obj file before loading it to the vbo
         if center_obj and not vbo_name in app.mesh.vao.vbo.vbos:
             if (Path(__file__).parent/path_obj).with_suffix('.obj.bin').exists():
@@ -106,6 +106,7 @@ class DefaultOBJ(BaseModel):
     
         self.path = path
         self.rot_available = rotation_available
+        self.kwargs = kwargs
 
         super().__init__(app, vao_name, tex_id, pos, rot, scale)
         self.update_initial_transform_parameters_for_dimension_normalization(vbo_name, normalize_dimensions)
@@ -115,18 +116,18 @@ class DefaultOBJ(BaseModel):
         self.update_model_transform()
 
         # texture
-        self.program['alpha'] = 1
+        self.program['alpha'] = self.kwargs['alpha'] if 'alpha' in self.kwargs else 1.0
         self.texture = self.app.mesh.texture.textures[self.tex_id]
         self.program['u_texture_0'] = 0
         self.texture.use(location = 0)
 
         self.update_uniform_transformation_matrices(update_proj=True)
         self.update_uniform_light()
-        self.program['light.Ia'].write(self.app.light.Ia+0.2)
 
     def update(self):
         self.update_model_transform()
         self.update_uniform_transformation_matrices(update_camPos=True)
+        self.program['alpha'] = self.kwargs['alpha'] if 'alpha' in self.kwargs else 1.0
         self.texture.use()
         
         self.app.info_display.update_info_section(self.tex_id,f'{self.tex_id} pos: {self.pos}, rot: {self.rot}, scale: {self.scale}')

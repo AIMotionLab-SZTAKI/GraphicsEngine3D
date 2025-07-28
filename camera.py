@@ -74,8 +74,9 @@ class Camera:
         return glm.perspective(glm.radians(FOV), self.aspect_ratio, NEAR, FAR)
     
     def get_camera_str(self):
-        return f'p: ({self.position.x:.1f}, {self.position.y:.1f}, {self.position.z:.1f}), yaw: {self.yaw:.0f}, pitch: {self.pitch:.0f}'
-    
+        return f'p: ({self.position.x:.2f}, {self.position.y:.1f}, {self.position.z:.1f}), '\
+               f'yaw: {self.yaw:.0f}deg {np.radians(self.yaw):.2f}rad, pitch: {self.pitch:.0f}deg {np.radians(self.pitch):.2f}rad'
+
     def get_camera_interp_data(self):
 
         positions = np.array([ # t,x,y,z
