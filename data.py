@@ -6,7 +6,7 @@ import numpy as np
 import pickle
 
 class Data:
-    def __init__(self, app, args:str):
+    def __init__(self, app, args):
         self.app = app
         try:
             self.folder = Path(args.folder)

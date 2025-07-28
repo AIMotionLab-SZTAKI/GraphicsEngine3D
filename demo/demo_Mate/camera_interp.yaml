@@ -1,0 +1,19 @@
+# Camera interpolation path configuration
+# angle_unit can be 'deg' or 'rad'
+angle_unit: 'deg'
+
+# Positions: [time_seconds, x, y, z]
+positions:
+  - [0,   1.54, 1.0, 0.0]
+  - [10,  1.08, 1.0, -1.13]
+  - [20,  0.0,  1.0, -1.6]
+
+# Yaw angles: [time_seconds, angle]
+yaws:
+  - [0,  180]
+  - [20, 90]
+
+# Pitch angles: [time_seconds, angle]
+pitches:
+  - [0,  -41]
+  - [20, -38]
