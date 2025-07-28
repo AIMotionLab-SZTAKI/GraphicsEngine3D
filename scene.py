@@ -26,7 +26,7 @@ class Scene:
             plans = self.app.data.plans
             for plan_idx in range(len(plans)):
 
-                if 'path_extracted' in plans[plan_idx] and not 'grid' in self.scene: # Continous world (pland only contains 'path_extracted' and 'grid_shape')
+                if 'path_extracted' in plans[plan_idx] and not 'grid' in self.scene: # Continous world (plan only contains 'path_extracted' and 'grid_shape')
                     self.add_object(Spline(app, vao_name='spline1'+str(plan_idx), plan=plans[plan_idx], path_name='path_extracted', color=[31/255,119/255,180/255,1], rot=(90,0,180)))
                     self.add_object(DroneOBJ(app, vao_name='drone'+str(plan_idx), plan = plans[plan_idx]))
                     
@@ -58,6 +58,7 @@ class Scene:
                                             tex_id= obj_plan['id'],
                                             path_obj=f'objects/obj/{obj_plan['type']}.obj',
                                             path=obj_plan['path'], 
+                                            rotation_available=True,
                                             normalize_dimensions=True,
                                             center_obj=True,
                                             scale=2*obj_plan['dimension']/np.max(obj_plan['world_dimensions'])))

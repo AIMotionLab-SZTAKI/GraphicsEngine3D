@@ -111,7 +111,7 @@ class Data:
                     X, Y = np.meshgrid(x, y)
                     Z = heightmap
                     print(f'Using fallback normalized meshgrid for heightmap shape: {heightmap.shape}')
-                
+            
             terrain_obj_path = Path(__file__).parent/'objects/terrain/terrain.obj'
             terrain_texture_path = Path(__file__).parent/'objects/terrain/terrain.png'
             convert_meshgrid_to_terrain_obj(X, Y, Z, terrain_obj_path) 
@@ -133,7 +133,7 @@ class Data:
             print(f'obj_plans.pkl not found in {self.folder}. No objects will be loaded.')
             raise e
 
-        try: 
+        try:
             self.world_dimensions = self.obj_plans[0]['world_dimensions']
         except Exception as e:
             self.world_dimensions = np.array([1, 1, 1], dtype=np.float32)
@@ -146,7 +146,7 @@ class Data:
             if np.issubdtype(obj_plan['path'].dtype, np.floating):
                 print('Path is of type float, time is already in seconds, path is in SI units, no conversion needed')
 
-                obj_plan['path'][:,0] = obj_plan['path'][:,0] /10 # DEBUG: Make it faster
+                obj_plan['path'][:,0] = obj_plan['path'][:,0] / self.app.clock.FPS_animation  # DEBUG: Make it faster 
                 obj_plan['path'][:,1:4] = obj_plan['path'][:,1:4] - self.world_dimensions/2 # center
                 obj_plan['path'][:,1:4] = 2 * obj_plan['path'][:,1:4] / np.max(self.world_dimensions).astype(np.float32)  # Normalize the position, by the largest dimension of the world
 

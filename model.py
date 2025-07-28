@@ -172,7 +172,7 @@ class DroneOBJ(DefaultOBJ):
             self.rot_available = True
         else:
             self.path = self.plan['path_extracted'] # t,x,y,z
-            self.rot_available = False
+            self.rot_available = True if self.path.shape[1] >= 7 else False
 
         self.path_frame_multiplier = self.path.shape[0]/self.plan['path_extracted'].shape[0]
         self.shape_scale = np.min( 1 / np.array(self.plan['grid_shape']))
