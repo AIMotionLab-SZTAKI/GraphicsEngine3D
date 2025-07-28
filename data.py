@@ -6,10 +6,10 @@ import numpy as np
 import pickle
 
 class Data:
-    def __init__(self, app, args):
+    def __init__(self, app):
         self.app = app
         try:
-            self.folder = Path(args.folder)
+            self.folder = Path(app.args.folder)
         except:
             print(f'Invalid folder path: {self.folder}. Please provide a valid path.')
 
@@ -25,7 +25,7 @@ class Data:
             'terrain': self.load_terrain
         }
 
-        self.scene = args.scene if isinstance(args.scene, list) else [args.scene]
+        self.scene = app.args.scene if isinstance(app.args.scene, list) else [app.args.scene]
         if 'all' in self.scene:
             self.scene = list(load_func_dict.keys())
         for key in load_func_dict:
@@ -56,11 +56,18 @@ class Data:
             raise e
 
     def load_plans(self):
+        # plans.pkl: list of dictionaries with keys: 'path_extracted', 'path_corrected', 'path_interp_BSpline', 'path_interp_MinimumSnapTrajectory', etc.
+        # all path_* keys contain a numpy array with shape (time, x, y, z, ?(rotx, roty, rotz)?, ......) 
+        # (rot not mandatory, but should be located at indices 4,5,6)
         try:
             with open(self.folder/'plans.pkl', 'rb') as f: 
                 self.plans = pickle.load(f)
+                
                 for i, plan in enumerate(self.plans):
-                    print(f"Plan {i} keys: {list(plan.keys())}")
+                    print(f"Plan {i} keys: {list(plan.keys())}") # DEBUG
+
+                    #if not 'world_dimensions' in self.plans[i]:s
+                    #    self.plans[i]['world_dimensions'] = self.plans[i]['grid_shape'] - 1
         
         except Exception as e:
             self.plans = None
@@ -165,6 +172,6 @@ class Data:
 
             print(f"Object plan {obj_plan['id']} loaded: path shape: {obj_plan['path'].shape} start: {obj_plan['path'][0,1:4]}, dimension: {obj_plan['dimension']}, world dimensions: {obj_plan['world_dimensions']}")
 
-        # If you wwant to add a custom object .obj file created by an external program,
+        # If you want to add a custom object .obj file created by an external program,
         # first open the obj file and comment out lines starting with: 'mtllib' and 'usemtl'
         # because the DefaultOBJ class can not handle these lines.

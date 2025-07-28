@@ -206,6 +206,8 @@ def center_obj_file(path):
             lines.append(line)
 
     vertices = np.array(vertices)
+    #bbox = vertices.max(axis=0) - vertices.min(axis=0)
+    #centered_vertices = vertices - (bbox / 2)
     centroid = np.mean(vertices, axis=0)
     centered_vertices = vertices - centroid
 
@@ -258,30 +260,45 @@ def get_demo_heightmap_from_grid_static():
     np.save(Path(__file__).parents[1]/'Data/Processing/demo_5drones/heightmap.npy', heightmap)
     '''
 
-
 def get_demo_data_for_obj_plans():
     folder = Path(__file__).parent/'demo/demo_Mate'
 
     path1 = np.load(folder/'back_and_forth_trajectory_1.npy')
     path2 = np.load(folder/'ellipsoidal_trajectory_map_centered.npy')
     path3 = np.load(folder/'ellipsoidal_trajectory_map_origin.npy')
+    path4 = np.load(folder/'drone.npy')
     world_dim = np.array([400e3, 400e3, 6e3], dtype=np.float32)
 
     # DEBUG
-    #path3[:,6] = np.linspace(0, 2*np.pi, path3.shape[0])
-    #path3[:,4] = 0
-    #path3[:,5] = 0
+    #path4[:,4] = np.linspace(0, 2*np.pi, path4.shape[0])
+    #path4[:,5] = 0
+    path4[:,6] = 0
+    path4[:,0] -= path4[0,0]  # start from t=0
+
+    import matplotlib.pyplot as plt
+    # Plot all columns of pathdrone as a scatter plot
+    plt.figure(figsize=(10, 6))
+    for i in range(4, 7):
+        plt.scatter(range(path4.shape[0]), path4[:, i], label=f'Column {i}')
+    plt.xlabel('Index')
+    plt.ylabel('Value')
+    plt.title('Scatter Plot of pathdrone Columns')
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+    
 
     obj_plans = [{'id':'radar_0', 'type':'radar', 'path':path1,'color':(0,255,255,0.5),'world_dimensions':world_dim, 'dimension':80e3},
                  {'id':'cone_0', 'type':'cone', 'path':path2,'color':(255,255,0,0.5),'world_dimensions':world_dim, 'dimension':60e3},
-                 {'id':'torus_0', 'type':'torus', 'path':path3,'color':(255,0,255,0.5),'world_dimensions':world_dim, 'dimension':40e3}]
+                 {'id':'torus_0', 'type':'torus', 'path':path3,'color':(255,0,255,0.5),'world_dimensions':world_dim, 'dimension':40e3},
+                 {'id':'drone_0', 'type':'drone', 'path':path4,'color':(0,0,0,1.0),'world_dimensions':world_dim, 'dimension':10e3}]
     
     with open(folder/'obj_plans.pkl', 'wb') as f:
         pkl.dump(obj_plans, f)  
 
 
 def main():
-    #center_obj_file(Path(__file__).parent/'objects/obj/torus.obj') # DELETE CACHE BEFORE RUNNING
+    #center_obj_file(Path(__file__).parent/'objects/obj/drone.obj') # DELETE CACHE BEFORE RUNNING
     #get_demo_heightmap_from_grid_static()
     get_demo_data_for_obj_plans()
 

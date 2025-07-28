@@ -16,10 +16,10 @@ from info_display import InfoDisplay
 
 class GraphicsEngine:
     def __init__(self, args, win_size=(1920, 1080)):
+        self.args = args
+        self.WIN_SIZE = win_size
         # init pygame modules
         pg.init()
-        # window size
-        self.WIN_SIZE = win_size
         # set opengl attr
         pg.display.gl_set_attribute(pg.GL_CONTEXT_MAJOR_VERSION, 3)
         pg.display.gl_set_attribute(pg.GL_CONTEXT_MINOR_VERSION, 3)
@@ -33,11 +33,9 @@ class GraphicsEngine:
         self.ctx = mgl.create_context()
         # self.ctx.front_face = 'cw'
         self.ctx.enable(flags=mgl.DEPTH_TEST | mgl.CULL_FACE | mgl.BLEND)
-        
-        self.args = args
 
         self.clock  = Clock()
-        self.data   = Data(self, args)
+        self.data   = Data(self)
         self.light  = Light()
         self.camera = Camera(self, position=(2,0.5,0), yaw=180, pitch=-20)
         self.mesh   = Mesh(self)

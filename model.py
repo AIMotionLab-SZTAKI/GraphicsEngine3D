@@ -104,6 +104,7 @@ class DefaultOBJ(BaseModel):
         app.mesh.vao.vaos[vao_name] = app.mesh.vao.get_vao(program = app.mesh.vao.program.programs['OBJ_default'],
                                                            vbo = [app.mesh.vao.vbo.vbos[vbo_name]])
     
+        self.vao_name = vao_name
         self.path = path
         self.rot_available = rotation_available
         self.kwargs = kwargs
@@ -130,7 +131,7 @@ class DefaultOBJ(BaseModel):
         self.program['alpha'] = self.kwargs['alpha'] if 'alpha' in self.kwargs else 1.0
         self.texture.use()
         
-        self.app.info_display.update_info_section(self.tex_id,f'{self.tex_id} pos: {self.pos}, rot: {self.rot}, scale: {self.scale}')
+        self.app.info_display.update_info_section(self.vao_name,f'{self.vao_name} pos: {self.pos}, rot: {self.rot}, scale: {self.scale}')
 
     def get_pos(self):
         closest_time_idx = np.argmin(np.abs(self.path[:, 0] - self.app.clock.time_animation))
@@ -150,12 +151,14 @@ class DefaultOBJ(BaseModel):
             self.m_model = self.get_model_matrix()
 
 class DroneOBJ(DefaultOBJ):
-    def __init__(self, app, vao_name='drone',
-                 pos=(0, 0, 0), rot=(0, 0, 0), scale=(1, 1, 1), plan:dict=None):
+    def __init__(self, app, vao_name='drone', 
+                 plan:dict=None, path_name='path',
+                 pos=(0, 0, 0), rot=(0, 0, 0), scale=(1, 1, 1), ):
         
-        self.plan = plan
         self.vao_name = vao_name
-
+        self.plan = plan
+        self.path_name = path_name
+        
         super().__init__(app, vao_name=vao_name, vbo_name='drone', tex_id='drone',
                          path_obj='objects/drone/MQ-9.obj',
                          path_texture='objects/drone/MQ-9_Black.png',
@@ -165,18 +168,11 @@ class DroneOBJ(DefaultOBJ):
         self.on_init()
 
     def on_init(self):
-        if 'path_interp_MinimumSnapTrajectory' in self.plan:
-            self.path = self.plan['path_interp_MinimumSnapTrajectory'] # t,x,y,z,rotx,roty,rotz
-            self.rot_available = True
-        elif 'path_interp_BSpline' in self.plan:
-            self.path = self.plan['path_interp_BSpline']  # t,x,y,z,rotx,roty,rotz
-            self.rot_available = True
-        else:
-            self.path = self.plan['path_extracted'] # t,x,y,z
-            self.rot_available = True if self.path.shape[1] >= 7 else False
+        self.path = self.plan[self.path_name] # t,x,y,z,rotx,roty,rotz
+        self.rot_available = True if self.path.shape[1] >= 7 else False
 
         self.path_frame_multiplier = self.path.shape[0]/self.plan['path_extracted'].shape[0]
-        self.shape_scale = np.min( 1 / np.array(self.plan['grid_shape']))
+        self.shape_scale = 1 / np.max(self.plan['grid_shape'])
 
         self.frame_index = 0
         self.pos = self.get_pos()
@@ -290,15 +286,16 @@ class CubeDynamic(BaseModel):
         self.vao.render(instances = self.grid_seq_dynamic_instancelist.shape[1])
 
 class Spline(BaseModel):
-    def __init__(self, app, vao_name='spline', tex_id='None',
-                 pos=(0, 0, 0), rot=(0, 0, 0), scale=(1, 1, 1), plan:np.ndarray=None, path_name:str=None, color:glm.vec4=glm.vec4([1,1,1,1])):
+    def __init__(self, app, vao_name='spline',
+                 pos=(0, 0, 0), rot=(0, 0, 0), scale=(1, 1, 1), 
+                 plan:np.ndarray=None, path_name:str=None, color=[1,1,1,1]):
         
         # Init VBO and VAO before calling super().init !!! (vbo_name = vao_name)
         app.mesh.vao.vbo.vbos[vao_name] = SplineVBO(app.ctx, reserve = plan[path_name].shape[0]*12)
         app.mesh.vao.vaos[vao_name] = app.mesh.vao.get_vao(program = app.mesh.vao.program.programs['spline'], 
                                                            vbo = [app.mesh.vao.vbo.vbos[vao_name]])
         
-        super().__init__(app, vao_name, tex_id, pos, rot, scale)
+        super().__init__(app, vao_name, None, pos, rot, scale)
 
         self.app = app
         self.vao_name = vao_name
@@ -309,9 +306,12 @@ class Spline(BaseModel):
         self.on_init()
 
     def on_init(self):
-        self.shape_scale = 1 / np.max(self.plan['grid_shape'])
-        path_transformed = 2 * self.shape_scale * (self.path[:, 1:4] - ((np.array(self.plan['grid_shape']) - 1) / 2))
-        self.app.mesh.vao.vbo.vbos[self.vao_name].vbo.write((path_transformed).flatten().astype('f4'))
+        if 'grid_shape' in self.plan: # Only transform the path if grid, else the path is already normalized
+            self.shape_scale = 1 / np.max(self.plan['grid_shape'])
+            path = 2 * self.shape_scale * (self.path[:, 1:4] - ((np.array(self.plan['grid_shape'])) / 2))
+        else:
+            path = self.path[:, 1:4]  # Use the path as it is, without normalization
+        self.app.mesh.vao.vbo.vbos[self.vao_name].vbo.write((path).flatten().astype('f4'))
         
         self.update_uniform_transformation_matrices(update_proj=True)
 
@@ -381,10 +381,12 @@ class DefaultSTL(BaseModel):
 
 class DroneSTL(DefaultSTL):
     def __init__(self, app, vao_name='droneSTL',
-                 pos=(0, 0, 0), rot=(0, 0, 0), scale=(1, 1, 1), plan:dict=None):
+                 plan:dict=None, path_name='path_interp_MinimumSnapTrajectory',
+                 pos=(0, 0, 0), rot=(0, 0, 0), scale=(1, 1, 1)):
         
-        self.plan = plan
         self.vao_name = vao_name
+        self.plan = plan
+        self.path_name = path_name
 
         super().__init__(app, vao_name, vbo_name='droneSTL', tex_id='test', 
                          path_stl='objects/drone/quad.stl', 
@@ -393,9 +395,9 @@ class DroneSTL(DefaultSTL):
         self.on_init()
 
     def on_init(self):
-        self.path_interpolated = self.plan['path_interp_MinimumSnapTrajectory'] # if 'path_interp_MinimumSnapTrajectory' in self.plan else self.plan['path_interp_BSpline']
+        self.path_interpolated = self.plan[self.path_name]  # t,x,y,z,rotx,roty,rotz
         self.path_frame_multiplier = self.path_interpolated.shape[0]/self.plan['path_extracted'].shape[0]
-        self.shape_scale = 1 / np.max(self.plan['grid_shape'])
+        self.shape_scale = 1 / (np.max(self.plan['grid_shape']))
 
         self.frame_index = 0
         self.pos = self.get_pos()

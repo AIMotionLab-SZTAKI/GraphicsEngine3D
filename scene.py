@@ -28,16 +28,26 @@ class Scene:
 
                 if 'path_extracted' in plans[plan_idx] and not 'grid' in self.scene: # Continous world (plan only contains 'path_extracted' and 'grid_shape')
                     self.add_object(Spline(app, vao_name='spline1'+str(plan_idx), plan=plans[plan_idx], path_name='path_extracted', color=[31/255,119/255,180/255,1], rot=(90,0,180)))
-                    self.add_object(DroneOBJ(app, vao_name='drone'+str(plan_idx), plan = plans[plan_idx]))
+                    self.add_object(DroneOBJ(app, vao_name='drone'+str(plan_idx), plan = plans[plan_idx], path_name='path_extracted'))
                     
                 if 'path_corrected' in plans[plan_idx] and 'grid' in self.scene: # Grid based world (pland contains 'path_corrected' and 'grid_shape')
                     #self.add_object(Spline(app, vao_name='spline2'+str(plan_idx), plan=plans[plan_idx], path_name='path_corrected', color=[44/255,160/255,44/255,1], rot=(90,0,180)))
                     pass
                 if 'path_interp_BSpline' in plans[plan_idx] and 'path_interp_MinimumSnapTrajectory' not in plans[plan_idx]:
-                    self.add_object(DroneOBJ(app, vao_name='drone'+str(plan_idx), plan = plans[plan_idx]))
+                    self.add_object(DroneOBJ(app, vao_name='drone'+str(plan_idx), plan = plans[plan_idx], path_name='path_interp_BSpline'))
                     self.add_object(Spline(app, vao_name='spline3'+str(plan_idx), plan=plans[plan_idx], path_name='path_interp_BSpline', color=[0.8,0.2,0.2,1], rot=(90,0,180)))
+                
+                    '''
+                    self.add_object(DefaultOBJ(app, vao_name='drone_grid_'+str(plan_idx), vbo_name='drone', tex_id='drone',
+                                            path_obj='objects/drone/MQ-9.obj',
+                                            path_texture='objects/drone/MQ-9_Black.png',
+                                            path=pathx,
+                                            rotation_available=True,
+                                            normalize_dimensions=True,
+                                            rot=(90,0,180), scale=30/np.max(plans[plan_idx]['grid_shape'])))'''
+
                 if 'path_interp_MinimumSnapTrajectory' in plans[plan_idx]:
-                    self.add_object(DroneSTL(app, vao_name='drone'+str(plan_idx), plan = plans[plan_idx]))
+                    self.add_object(DroneSTL(app, vao_name='drone'+str(plan_idx), plan = plans[plan_idx], path_name='path_interp_MinimumSnapTrajectory'))
                     self.add_object(Spline(app, vao_name='spline4'+str(plan_idx), plan=plans[plan_idx], path_name='path_interp_MinimumSnapTrajectory', color=[0.8,0.2,0.2,1], rot=(90,0,180)))
 
         if 'grid' in self.scene:
@@ -63,8 +73,12 @@ class Scene:
                                             center_obj=True,
                                             scale=2*obj_plan['dimension']/np.max(obj_plan['world_dimensions']),
                                             alpha=obj_plan['color'][3]))
-        '''
-        self.add_object(DefaultOBJ(app, vao_name='cat', vbo_name='cat', tex_id='cat',
+                if obj_plan['type'] == 'drone':
+                    self.add_object(Spline(app, vao_name='spline_'+obj_plan['id'], 
+                                           plan=obj_plan, path_name='path', 
+                                           color=[1,0,0,1]))
+        pass
+        '''self.add_object(DefaultOBJ(app, vao_name='cat', vbo_name='cat', tex_id='cat',
                                     path_obj='objects/cat/20430_Cat_v1_NEW.obj',
                                     path_texture='objects/cat/20430_cat_diff_v1.jpg',
                                     normalize_dimensions=True))'''
