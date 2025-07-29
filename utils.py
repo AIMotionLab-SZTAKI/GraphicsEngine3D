@@ -270,8 +270,8 @@ def get_demo_data_for_obj_plans():
     world_dim = np.array([400e3, 400e3, 6e3], dtype=np.float32)
 
     # DEBUG
-    path4[:,0] -= path4[0,0]
-    path4[:,6] = np.linspace(0, 2*np.pi, path4.shape[0])
+    #path4[:,0] -= path4[0,0]
+    #path4[:,6] = np.linspace(0, 2*np.pi, path4.shape[0])
     #path4[:,5] = 0
     #path4[:,6] = 0
 
