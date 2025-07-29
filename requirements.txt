@@ -1,0 +1,11 @@
+pyglm
+matplotlib
+moderngl
+numpy
+Pillow
+pygame
+PyOpenGL
+pywavefront
+PyYAML
+scipy
+numpy-stl

@@ -1,4 +1,4 @@
-import glm
+import glm # pyglm
 import pygame as pg
 import numpy as np
 import yaml
