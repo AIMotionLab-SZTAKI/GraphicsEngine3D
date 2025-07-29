@@ -69,7 +69,7 @@ class Scene:
                 self.add_object(DefaultOBJ(app, vao_name=obj_plan['id'],
                                             vbo_name=obj_plan['type'],
                                             tex_id= tex_id,
-                                            path_obj=f'objects/obj/{obj_plan['type']}.obj',
+                                            path_obj=f'objects/obj/{obj_plan["type"]}.obj',
                                             path_texture=path_texture,
                                             path=obj_plan['path'], 
                                             rotation_available=True,
