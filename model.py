@@ -50,21 +50,28 @@ class BaseModel:
         if update_proj: self.program['m_proj'].write(self.camera.m_proj)
         if update_camPos: self.program['camPos'].write(self.camera.position)
 
-    def set_offset_parameters_for_dimension_normalization(self, vertex_data):        
-        vertex_data = vertex_data.reshape(-1, 3)    # Reshape the vertex data into a (N, 3) array
-        min_coords = np.min(vertex_data, axis=0)    # Calculate the min and max for each axis (x, y, z)
-        max_coords = np.max(vertex_data, axis=0)
+    def set_offset_parameters_for_dimension_normalization(self, vertex_data, mode='max'):
+        """ Set the offset scale for dimension normalization based on vertex data. """
+        if mode in ['max', 'unit']:
+            vertex_data = vertex_data.reshape(-1, 8)         # Reshape the vertex data into a (N, 8) array, format: [texcoord, normal, position]
+            vertex_positions = vertex_data[:, 5:8]           # Extract the position data
+            min_coords = np.min(vertex_positions, axis=0)    # Calculate the min and max for each axis (x, y, z)
+            max_coords = np.max(vertex_positions, axis=0)
+            bbox = max_coords - min_coords                  # Bounding box dimensions
+            if mode == 'max':
+                self.offset_scale = float(1 / np.max(bbox)) # Keep aspect ratio, divide by the largest dimension
+            elif mode == 'unit':
+                self.offset_scale = 1 / bbox                # Rescale to unit cube
+        else:
+            raise ValueError("Invalid mode for dimension normalization. Use 'max' or 'unit'.")
 
-        self.offset_scale = float(1 / np.max(max_coords - min_coords))  # Scale factor to fit within a unit cube
-
-    def update_initial_transform_parameters_for_dimension_normalization(self, vbo_name, normalize_dimensions=False):
-        if normalize_dimensions:
-            # set scale for dimension normalization
-            self.set_offset_parameters_for_dimension_normalization(self.app.mesh.vao.vbo.vbos[vbo_name].vertex_data)
+    def update_initial_transform_parameters_for_dimension_normalization(self, vbo_name):
+        if 'normalize_dimensions' in self.kwargs:
+            self.set_offset_parameters_for_dimension_normalization(self.app.mesh.vao.vbo.vbos[vbo_name].vertex_data, mode=self.kwargs['normalize_dimensions'])
         else:
             self.offset_scale = 1
 
-        self.initial_scale = glm.vec3(tuple(np.broadcast_to(self.offset_scale * np.array(self.initial_scale), 3).astype(float)))
+        self.initial_scale = glm.vec3(tuple(np.broadcast_to(np.array(self.offset_scale) * np.array(self.initial_scale), 3).astype(float)))
 
         self.pos = glm.vec3(self.initial_pos)
         self.rot = glm.vec3(self.initial_rot)
@@ -77,12 +84,16 @@ class BaseModel:
 class DefaultOBJ(BaseModel):
     def __init__(self, app, vao_name='default', vbo_name='default', tex_id='test', 
                  path_obj='objects/terrain/terrain.obj', path_texture='objects/terrain/terrain.png',
-                 path:np.ndarray=None, rotation_available:bool=False, 
-                 normalize_dimensions:bool=False, center_obj:bool=False,
+                 path:np.ndarray=None, rotation_available:bool=False,
                  pos=(0, 0, 0), rot=(0, 0, 0), scale=(1, 1, 1), **kwargs):
+        '''kwargs:
+        - alpha: float, default 1.0, transparency of the object
+        - normalize_dimensions: str, 'max' or 'unit', default 'None', how to normalize the dimensions of the object
+        - center_obj: bool, default False, whether to center the object (using its bounding box) before loading it to the vbo
+        '''
 
         # Center the obj file before loading it to the vbo
-        if center_obj and not vbo_name in app.mesh.vao.vbo.vbos:
+        if 'center_obj' in kwargs and kwargs['center_obj'] and not vbo_name in app.mesh.vao.vbo.vbos:
             if (Path(__file__).parent/path_obj).with_suffix('.obj.bin').exists():
                 print('The OBJ file centering is only executed if a new .obj file is added or updated. ' \
                       'Delete the cache files if the .obj file is updated.')
@@ -110,7 +121,7 @@ class DefaultOBJ(BaseModel):
         self.kwargs = kwargs
 
         super().__init__(app, vao_name, tex_id, pos, rot, scale)
-        self.update_initial_transform_parameters_for_dimension_normalization(vbo_name, normalize_dimensions)
+        self.update_initial_transform_parameters_for_dimension_normalization(vbo_name)
         self.on_init()
 
     def on_init(self):

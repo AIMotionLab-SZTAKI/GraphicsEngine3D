@@ -56,7 +56,6 @@ void main()
     v_position      = view_pos.xyz;                           // position in the view coord system
 
     v_normal      = transpose(inverse(mat3(model_view))) * normalize(a_normal);  // normal in the camera (view) system (legacy)
-    //v_normal =      vec3(m_model*m_instance*vec4(normalize(a_normal), 1.0));
     v_color         = vec4(0.6 * HUEtoRGB(a_instance_value), 0.5);
 
     gl_Position     = m_proj * view_pos;

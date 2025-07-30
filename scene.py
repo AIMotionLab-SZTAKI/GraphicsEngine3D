@@ -50,7 +50,7 @@ class Scene:
                                     path_texture='objects/terrain/terrain.png',
                                     rot=rot, scale=1))
 
-        if 'obj' in self.scene:  
+        if 'obj' in self.scene:
             for obj_plan in self.app.data.obj_plans:
                 if obj_plan['type'] == 'drone':
                     tex_id = 'drone' # same texture for all drones
@@ -64,19 +64,24 @@ class Scene:
                     self.app.mesh.texture.textures[obj_plan['id']] = create_texture_from_rgba(self.app.ctx, rgba=obj_plan['color'])
                     tex_id = obj_plan['id'] # separete texture for each object
                     path_texture = None
-                    rot=(0,0,0) # Possibly no rotation needed for other objects, but need to check with an object that has a detectable orientation in Z
+                    rot=(0,0,0) # Possibly no rotation needed for other objects
+
+                    if isinstance(obj_plan['dimension'], (float, int)): # If dimension is a single value, normalize dimensions with keeping aspect ratio
+                        normalize_dimensions = 'max' # normalize by the largest dimension of the instance
+                    else:
+                        normalize_dimensions = 'unit' # rescale to unit cube
 
                 self.add_object(DefaultOBJ(app, vao_name=obj_plan['id'],
                                             vbo_name=obj_plan['type'],
                                             tex_id= tex_id,
                                             path_obj=f'objects/obj/{obj_plan["type"]}.obj',
                                             path_texture=path_texture,
-                                            path=obj_plan['path'], 
+                                            path=obj_plan['path'],
                                             rotation_available=True,
-                                            normalize_dimensions=True,
+                                            normalize_dimensions=normalize_dimensions,
                                             center_obj=False,
                                             rot=rot,
-                                            scale=2*obj_plan['dimension']/np.max(obj_plan['world_dimensions']),
+                                            scale=2*np.array(obj_plan['dimension'])/np.max(obj_plan['world_dimensions']),
                                             alpha=obj_plan['color'][3]))
              
         '''self.add_object(DefaultOBJ(app, vao_name='cat', vbo_name='cat', tex_id='cat', path_obj='objects/cat/20430_Cat_v1_NEW.obj',

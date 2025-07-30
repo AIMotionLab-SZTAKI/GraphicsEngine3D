@@ -9,9 +9,9 @@ class Data:
     def __init__(self, app):
         self.app = app
         try:
-            self.folder = Path(app.args.folder)
+            self.folder = Path(app.config['folder'])
         except:
-            print(f'Invalid folder path: {self.folder}. Please provide a valid path.')
+            print(f'Invalid folder path: {app.config['folder']}. Please provide a valid path.')
 
         # grid_seq: np.ndarray with indices: time,x,y,z
         # plans: list of dictionaries with keys: 'path_extracted' ,'path_corrected' ,'path_interp_BSpline', 'path_interp_MinimumSnapTrajectory', etc.
@@ -25,7 +25,7 @@ class Data:
             'terrain': self.load_terrain
         }
 
-        self.scene = app.args.scene if isinstance(app.args.scene, list) else [app.args.scene]
+        self.scene = app.config['scene'] if isinstance(app.config['scene'], list) else [app.config['scene']]
         if 'all' in self.scene:
             self.scene = list(load_func_dict.keys())
         for key in load_func_dict:
@@ -150,6 +150,8 @@ class Data:
         # Iterate through the object plans and convert the paths to the correct format
         for obj_plan in self.obj_plans:
 
+            print(f"Object plan {obj_plan['id']} loaded, type: {obj_plan['type']}, path shape: {obj_plan['path'].shape} start: {obj_plan['path'][0,1:4]}, dimension: {obj_plan['dimension']}, world dimensions: {obj_plan['world_dimensions']}")
+
             if np.issubdtype(obj_plan['path'].dtype, np.floating):
                 print('Path is of type float, time is already in seconds, path is in SI units, no conversion needed')
 
@@ -164,13 +166,16 @@ class Data:
                 obj_plan['path'][:,0] = obj_plan['path'][:,0] / self.app.clock.FPS_animation  # Convert time to seconds
                 obj_plan['path'][:,1:4] = obj_plan['path'][:,1:4] / np.max(self.world_dimensions).astype(np.float32)  # Normalize the position, by the largest dimension of the world
 
+
+            # Transform the path to the correct format (OpenGL expects Y and Z to be swapped, and X to be flipped)
             obj_plan['path'][:,1] = -obj_plan['path'][:,1]  # Flip x axis
             obj_plan['path'][:,[2,3]] = obj_plan['path'][:,[3,2]]  # Swap y and z
             if obj_plan['path'].shape[1] >= 7: # Rotation information on indices 4,5,6
                 obj_plan['path'][:,4] = - obj_plan['path'][:,4]  # Flip x axis
                 obj_plan['path'][:,[5,6]] = obj_plan['path'][:,[6,5]]  # Swap y and z
-
-            print(f"Object plan {obj_plan['id']} loaded: path shape: {obj_plan['path'].shape} start: {obj_plan['path'][0,1:4]}, dimension: {obj_plan['dimension']}, world dimensions: {obj_plan['world_dimensions']}")
+            if isinstance(obj_plan['dimension'], (tuple, list, np.ndarray)):
+                obj_plan['dimension'] = np.array(obj_plan['dimension'])
+                obj_plan['dimension'][[1, 2]] = obj_plan['dimension'][[2, 1]]  # Swap y and z dimensions
 
         # If you want to add a custom object .obj file created by an external program,
         # first open the obj file and comment out lines starting with: 'mtllib' and 'usemtl'

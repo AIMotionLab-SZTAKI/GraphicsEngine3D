@@ -145,7 +145,7 @@ class Camera:
     def get_interpolation_data(self):
         if not hasattr(self, 'camera_interp_data'):
             try:
-                folder = Path(self.app.args.folder)
+                folder = Path(self.app.config['folder'])
                 self.camera_interp_file = folder/'camera_interp.yaml'  # path to YAML file for interpolation data
 
                 self.load_camera_interp_data_from_yaml(self.camera_interp_file)

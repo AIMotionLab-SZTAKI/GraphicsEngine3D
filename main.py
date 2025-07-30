@@ -15,8 +15,8 @@ from data import Data
 from info_display import InfoDisplay
 
 class GraphicsEngine:
-    def __init__(self, args, win_size=(1920, 1080)):
-        self.args = args
+    def __init__(self, win_size=(1920, 1080), **kwargs):
+        self.config = kwargs
         self.WIN_SIZE = win_size
         # init pygame modules
         pg.init()
@@ -95,13 +95,14 @@ def main():
     root_dir = Path(__file__).parent
 
     parser = argparse.ArgumentParser(description='GraphicsEngine3D')
-    parser.add_argument('--folder', type=str, default=root_dir/'demo/demo_Mate', 
+    parser.add_argument('--folder', type=str, default=root_dir/'demo/demo_Mate2',
                         help='Folder containing the necessary files')
     parser.add_argument('--scene', type=eval, default=['all'],
                         help='''List containing scene objects to be loaded ['all', 'grid', 'plans', 'terrain', 'obj']''')
     args = parser.parse_args()
+    kwargs = vars(args)  # Convert Namespace to dict
 
-    app = GraphicsEngine(args)
+    app = GraphicsEngine(**kwargs)
     app.run()
 
 if __name__ == '__main__':
