@@ -74,7 +74,7 @@ class Scene:
                                             path=obj_plan['path'], 
                                             rotation_available=True,
                                             normalize_dimensions=True,
-                                            center_obj=True,
+                                            center_obj=False,
                                             rot=rot,
                                             scale=2*obj_plan['dimension']/np.max(obj_plan['world_dimensions']),
                                             alpha=obj_plan['color'][3]))

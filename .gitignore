@@ -13,14 +13,5 @@ __pycache__
 *.obj.bin
 *.obj.json
 
-# User-specific configuration files
-.bash_logout
-.bashrc
-.profile
-.gitconfig
-.gnupg/
-.ssh/
-.dotnet/
-
 # Large files
 grid_seq.npy

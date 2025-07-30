@@ -86,7 +86,7 @@ class DefaultOBJ_VBO(BaseVBO):
         self.attribs = ['in_texcoord_0', 'in_normal', 'in_position']
         
     def get_vertex_data(self):
-        objs = pywavefront.Wavefront(file_name=self.file, cache=True, parse=True)
+        objs = pywavefront.Wavefront(file_name=self.file, create_materials=True, parse=True, cache=True)
         obj = objs.materials.popitem()[1]
         vertex_data = obj.vertices
         vertex_data = np.array(vertex_data, dtype='f4')
