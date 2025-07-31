@@ -93,7 +93,7 @@ class BaseModel:
 
         self.instance_pos = glm.vec3(self.instance_pos * self.instance_scale + self.instance_pos_init)
         self.instance_scale = glm.vec3(self.instance_scale * self.instance_scale_init)
-
+        
     def render(self):
         self.update()
         self.vao.render()
@@ -181,8 +181,8 @@ class DefaultOBJ(BaseModel):
 class DroneOBJ(DefaultOBJ):
     def __init__(self, app, vao_name='drone', 
                  plan:dict=None, path_name='path',
-                 pos=(0, 0, 0), rot=(0, 0, 0), scale=(1, 1, 1), ):
-        
+                 pos=(0, 0, 0), rot=(0, 0, 0), scale=(1, 1, 1), **kwargs):
+
         self.vao_name = vao_name
         self.plan = plan
         self.path_name = path_name
@@ -191,7 +191,8 @@ class DroneOBJ(DefaultOBJ):
                          path_obj='objects/drone/MQ-9.obj',
                          path_texture='objects/drone/MQ-9_Black.png',
                          normalize_dimensions=True,
-                         pos=pos, rot=rot, scale=scale)
+                         pos=pos, rot=rot, scale=scale,
+                         **kwargs)
 
         self.on_init()
 
@@ -206,7 +207,7 @@ class DroneOBJ(DefaultOBJ):
         self.pos = self.get_pos()
         if self.rot_available:
             self.rot = self.get_rot()
-        self.scale = glm.vec3([x*y for x, y in zip((np.broadcast_to(self.shape_scale*50, 3)), self.scale)])
+        self.scale = glm.vec3([x*y for x, y in zip((np.broadcast_to(self.shape_scale*10, 3)), self.scale)])
         self.m_model = self.get_model_matrix()
 
         # texture
@@ -227,7 +228,7 @@ class DroneOBJ(DefaultOBJ):
 
     def get_pos(self):
         self.translation = 2 * self.shape_scale * (self.path[self.frame_index,1:4] - (np.array(self.plan['grid_shape'])-1)/2)
-        self.translation = [-self.translation[0], self.translation[2] - 0.5*self.shape_scale, self.translation[1]] # correct for the differences in the coord systems
+        #self.translation = [-self.translation[0], self.translation[2] - 0.5*self.shape_scale, self.translation[1]] # correct for the differences in the coord systems
         return glm.vec3(self.translation + self.initial_pos)
         
     def get_rot(self):
@@ -236,7 +237,7 @@ class DroneOBJ(DefaultOBJ):
         return glm.vec3(self.rotation + self.initial_rot)
 
 class CubeStatic(BaseModel):
-    def __init__(self, app, vao_name='cubeStatic', tex_id='cube', pos=(0, 0, 0), rot=(0, 0, 0), scale=(1, 1, 1)):
+    def __init__(self, app, vao_name='cubeStatic', tex_id='cube', pos=(0, 0, 0), rot=(0, 0, 0), scale=(1, 1, 1), **kwargs):
 
         if not 'cube' in app.mesh.vao.vbo.vbos:  # The same VBO is used for all cubes, so it is created only once
             app.mesh.vao.vbo.vbos['cube'] = CubeVBO(app.ctx)
@@ -250,7 +251,7 @@ class CubeStatic(BaseModel):
                    app.mesh.vao.vbo.vbos['cubeStaticInstance']],
             ibo = app.mesh.vao.ibo.ibos['cube'])
 
-        super().__init__(app, vao_name, tex_id, pos, rot, scale)
+        super().__init__(app, vao_name, tex_id, pos, rot, scale, **kwargs)
         self.on_init()
 
     def update(self):
@@ -269,7 +270,7 @@ class CubeStatic(BaseModel):
         self.vao.render(instances = np.prod(self.grid_static_instancelist.shape[0]))
 
 class CubeDynamic(BaseModel):
-    def __init__(self, app, vao_name='cubeDynamic', tex_id='cube', pos=(0, 0, 0), rot=(0, 0, 0), scale=(1, 1, 1)):
+    def __init__(self, app, vao_name='cubeDynamic', tex_id='cube', pos=(0, 0, 0), rot=(0, 0, 0), scale=(1, 1, 1), **kwargs):
 
         if not 'cube' in app.mesh.vao.vbo.vbos:  # The same VBO is used for all cubes, so it is created only once
             app.mesh.vao.vbo.vbos['cube'] = CubeVBO(app.ctx)
@@ -283,7 +284,7 @@ class CubeDynamic(BaseModel):
                    app.mesh.vao.vbo.vbos['cubeDynamicInstance']],
             ibo = app.mesh.vao.ibo.ibos['cube'])
 
-        super().__init__(app, vao_name, tex_id, pos, rot, scale)
+        super().__init__(app, vao_name, tex_id, pos, rot, scale, **kwargs)
         self.on_init()
 
     def update(self):

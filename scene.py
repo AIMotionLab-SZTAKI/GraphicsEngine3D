@@ -23,26 +23,21 @@ class Scene:
 
         self.add_object(CoordSys(app, vao_name='coordsys_WORLD', pos=(0,0,0.4), rot=(0,0,0), scale=0.1, coord_sys=coord_transform))
         self.add_object(CoordSys(app, vao_name='coordsys_WORLD_OPENGL', pos=(0,0.1,0), rot=(0,0,0), scale=0.1))
-        #self.add_object(CoordSys(app, vao_name='coordsys_MAP_ORIGIN', pos=(1,0,-1), rot=(90,0,180), scale=0.1))
+        self.add_object(CoordSys(app, vao_name='coordsys_MAP_ORIGIN', pos=(-1,-1,0), rot=(0,0,0), scale=0.1, coord_sys=coord_transform))
         #self.add_object(CoordSys(app, vao_name='coordsys_MAP_ORIGIN_OPENGL', pos=(1,0,-1), rot=(0,0,0), scale=0.1))
 
         if 'grid' in self.scene:
-            self.add_object(CubeStatic(app, rot=(90,0,180)))    # total instanced cube size: 2x2x2
-        
+            self.add_object(CubeStatic(app, coord_sys=coord_transform))    # total instanced cube size: 2x2x2
+
         if 'plans' in self.scene:
             plans = self.app.data.plans
             for plan_idx in range(len(plans)):
-
-                if 'path_extracted' in plans[plan_idx] and not 'grid' in self.scene: # Continous world (plan only contains 'path_extracted' and 'grid_shape')
-                    self.add_object(Spline(app, vao_name='spline1'+str(plan_idx), plan=plans[plan_idx], path_name='path_extracted', color=[31/255,119/255,180/255,1], rot=(90,0,180)))
-                    self.add_object(DroneOBJ(app, vao_name='drone'+str(plan_idx), plan = plans[plan_idx], path_name='path_extracted'))
-                
-                if 'path_corrected' in plans[plan_idx] and 'grid' in self.scene: # Grid based world (pland contains 'path_corrected' and 'grid_shape')
-                    #self.add_object(Spline(app, vao_name='spline2'+str(plan_idx), plan=plans[plan_idx], path_name='path_corrected', color=[44/255,160/255,44/255,1], rot=(90,0,180)))
-                    pass
+                #self.add_object(Spline(app, vao_name='spline1'+str(plan_idx), plan=plans[plan_idx], path_name='path_extracted', color=[31/255,119/255,180/255,1], rot=(90,0,180)))
+                #self.add_object(Spline(app, vao_name='spline2'+str(plan_idx), plan=plans[plan_idx], path_name='path_corrected', color=[44/255,160/255,44/255,1], rot=(90,0,180)))
                 if 'path_interp_BSpline' in plans[plan_idx] and 'path_interp_MinimumSnapTrajectory' not in plans[plan_idx]:
-                    self.add_object(DroneOBJ(app, vao_name='drone'+str(plan_idx), plan = plans[plan_idx], path_name='path_interp_BSpline'))
-                    self.add_object(Spline(app, vao_name='spline3'+str(plan_idx), plan=plans[plan_idx], path_name='path_interp_BSpline', color=[0.8,0.2,0.2,1], rot=(90,0,180)))
+                    self.add_object(DroneOBJ(app, vao_name='drone'+str(plan_idx), plan = plans[plan_idx], path_name='path_interp_BSpline', 
+                                             coord_sys=coord_transform, rot=(0,-90,90)))
+                    self.add_object(Spline(app, vao_name='spline3'+str(plan_idx), plan=plans[plan_idx], path_name='path_interp_BSpline', color=[0.8,0.2,0.2,1], coord_sys=coord_transform))
                 if 'path_interp_MinimumSnapTrajectory' in plans[plan_idx]:
                     self.add_object(DroneSTL(app, vao_name='drone'+str(plan_idx), plan = plans[plan_idx], path_name='path_interp_MinimumSnapTrajectory'))
                     self.add_object(Spline(app, vao_name='spline4'+str(plan_idx), plan=plans[plan_idx], path_name='path_interp_MinimumSnapTrajectory', color=[0.8,0.2,0.2,1], rot=(90,0,180)))
@@ -51,7 +46,7 @@ class Scene:
             self.add_object(CubeDynamic(app, rot=(90,0,180)))   # total instanced cube size: 2x2x2
 
         if 'terrain' in self.scene:
-            rot = (0,0,0) if 'grid' not in self.scene else (0,90,0) # SOLUTION NEEDED TO DISCTINGUISH BETWEEN GRID AND CONTINOUS WORLD
+            rot = (0,0,0) if 'grid' not in self.scene else (0,0,-90) # SOLUTION NEEDED TO DISCTINGUISH BETWEEN GRID AND CONTINOUS WORLD
             self.add_object(DefaultOBJ(app, vao_name='terrain', vbo_name='terrain', tex_id='terrain',
                                     path_obj='objects/terrain/terrain.obj',
                                     path_texture='objects/terrain/terrain.png',

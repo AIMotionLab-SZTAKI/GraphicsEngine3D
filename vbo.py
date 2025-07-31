@@ -99,8 +99,7 @@ class DefaultSTL_VBO(BaseVBO):
         super().__init__(app)
         self.format = '3f 3f'  # Assuming normals, vertices, and texture coordinates
         self.attribs = ['in_normal', 'in_position']
-        
-
+    
     def get_vertex_data(self):
         try:
             mesh_data = stl.mesh.Mesh.from_file(self.file)  # Load the STL file
