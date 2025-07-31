@@ -112,4 +112,8 @@ def main():
 if __name__ == '__main__':
     main()
 
+    # folder = r'C:\Users\Mate\SourceCode\path_planning\Data\open_gl_test_4'
+    # app = GraphicsEngine(folder=folder, scene=['plans','terrain', 'obj'])
+    # app.run()
+
 # python GraphicsEngine3D/main.py --scene ['plans','terrain', 'obj']
