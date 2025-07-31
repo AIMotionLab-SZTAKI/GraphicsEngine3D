@@ -95,7 +95,7 @@ def main():
     root_dir = Path(__file__).parent
 
     parser = argparse.ArgumentParser(description='GraphicsEngine3D')
-    parser.add_argument('--folder', type=str, default=root_dir/'demo/demo_Mate2',
+    parser.add_argument('--folder', type=str, default=root_dir/'demo/demo_Mate',
                         help='Folder containing the necessary files')
     parser.add_argument('--scene', type=eval, default=['all'],
                         help='''List containing scene objects to be loaded ['all', 'grid', 'plans', 'terrain', 'obj']''')

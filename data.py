@@ -13,7 +13,7 @@ class Data:
         try:
             self.folder = Path(app.config['folder'])
         except:
-            print(f'Invalid folder path: {app.config['folder']}. Please provide a valid path.')
+            print(f"Invalid folder path: {app.config['folder']}. Please provide a valid path.")
 
         # grid_seq: np.ndarray with indices: time,x,y,z
         # plans: list of dictionaries with keys: 'path_extracted' ,'path_corrected' ,'path_interp_BSpline', 'path_interp_MinimumSnapTrajectory', etc.
