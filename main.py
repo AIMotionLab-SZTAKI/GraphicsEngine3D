@@ -97,9 +97,11 @@ class GraphicsEngine:
 
 def main():
     root_dir = Path(__file__).parent
-
+    default_folder = root_dir / 'demo/demo_Mate2' 
+    #default_folder = Path('C:\Users\Mate\SourceCode\path_planning\Data\open_gl_test_4')
+    
     parser = argparse.ArgumentParser(description='GraphicsEngine3D')
-    parser.add_argument('--folder', type=str, default=root_dir/'demo/demo_Mate',
+    parser.add_argument('--folder', type=str, default=default_folder,
                         help='Folder containing the necessary files')
     parser.add_argument('--scene', type=eval, default=['all'],
                         help='''List containing scene objects to be loaded ['all', 'grid', 'plans', 'terrain', 'obj']''')
@@ -111,9 +113,5 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-    # folder = r'C:\Users\Mate\SourceCode\path_planning\Data\open_gl_test_4'
-    # app = GraphicsEngine(folder=folder, scene=['plans','terrain', 'obj'])
-    # app.run()
 
 # python GraphicsEngine3D/main.py --scene ['plans','terrain', 'obj']
