@@ -67,14 +67,28 @@ class Data:
                 
                 for i, plan in enumerate(self.plans):
                     print(f"Plan {i} keys: {list(plan.keys())}") # DEBUG
-
-                    #if not 'world_dimensions' in self.plans[i]:s
-                    #    self.plans[i]['world_dimensions'] = self.plans[i]['grid_shape'] - 1
         
         except Exception as e:
             self.plans = None
             print('plans.pkl not found in {folder}. No plans will be loaded.')
             raise e
+        
+        try:
+            pass
+            for plan in self.plans:
+                for key in plan: 
+                    pass
+                    if key.startswith('path_') and not key.endswith('tcku'):
+                        # Normalize time to seconds
+                        scale = 1 / np.max(plan['grid_shape'])
+                        path = plan[key]
+                        # Normalize the position, by the largest dimension of the world
+                        path[:, 1:4] = 2* scale * (path[:, 1:4] - (np.array(plan['grid_shape'])-1)/2)
+                        path[:, 3] -= 0.5 * scale  # Adjust Z position to center the object
+        except Exception as e:
+            print(f"Error processing {key} in plan {plan}: {e}")
+
+
 
     def load_terrain(self):
         """Load meshgrid or heightmap and convert to terrain mesh with caching"""

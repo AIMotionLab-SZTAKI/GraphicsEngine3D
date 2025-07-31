@@ -35,12 +35,17 @@ class Scene:
                 #self.add_object(Spline(app, vao_name='spline1'+str(plan_idx), plan=plans[plan_idx], path_name='path_extracted', color=[31/255,119/255,180/255,1], rot=(90,0,180)))
                 #self.add_object(Spline(app, vao_name='spline2'+str(plan_idx), plan=plans[plan_idx], path_name='path_corrected', color=[44/255,160/255,44/255,1], rot=(90,0,180)))
                 if 'path_interp_BSpline' in plans[plan_idx] and 'path_interp_MinimumSnapTrajectory' not in plans[plan_idx]:
-                    self.add_object(DroneOBJ(app, vao_name='drone'+str(plan_idx), plan = plans[plan_idx], path_name='path_interp_BSpline', 
-                                             coord_sys=coord_transform, rot=(0,-90,90)))
-                    self.add_object(Spline(app, vao_name='spline3'+str(plan_idx), plan=plans[plan_idx], path_name='path_interp_BSpline', color=[0.8,0.2,0.2,1], coord_sys=coord_transform))
+                    self.add_object(DefaultOBJ(app, vao_name='drone'+str(plan_idx), vbo_name='drone', tex_id='drone',
+                                               path_obj='objects/obj/drone.obj',
+                                               path_texture='objects/drone/MQ-9_Diffuse.jpg',
+                                               path=plans[plan_idx]['path_interp_BSpline'], rotation_available=True,
+                                               rot=(0,0,90), scale=0.01, coord_sys=coord_transform))
+                    self.add_object(Spline(app, vao_name='spline3'+str(plan_idx), path=plans[plan_idx]['path_interp_BSpline'], color=[0.8,0.2,0.2,1], coord_sys=coord_transform))
                 if 'path_interp_MinimumSnapTrajectory' in plans[plan_idx]:
-                    self.add_object(DroneSTL(app, vao_name='drone'+str(plan_idx), plan = plans[plan_idx], path_name='path_interp_MinimumSnapTrajectory'))
-                    self.add_object(Spline(app, vao_name='spline4'+str(plan_idx), plan=plans[plan_idx], path_name='path_interp_MinimumSnapTrajectory', color=[0.8,0.2,0.2,1], rot=(90,0,180)))
+                    self.add_object(Spline(app, vao_name='spline4'+str(plan_idx), path=plans[plan_idx]['path_interp_MinimumSnapTrajectory'], color=[0.8,0.2,0.2,1], rot=(90,0,180)))
+                    self.add_object(DefaultSTL(app, vao_name='droneSTL'+str(plan_idx), path_stl='objects/drone/quad.stl',
+                                               path=plans[plan_idx]['path_interp_MinimumSnapTrajectory'], rotation_available=True,
+                                               coord_sys=coord_transform, rot=(0,0,90)))
 
         if 'grid' in self.scene:
             self.add_object(CubeDynamic(app, rot=(90,0,180)))   # total instanced cube size: 2x2x2
@@ -60,9 +65,7 @@ class Scene:
                     path_texture = 'objects/drone/MQ-9_Diffuse.jpg'
                     instance_rot=(90,0,0) # rotation for drone
 
-                    self.add_object(Spline(app, vao_name='spline_'+obj_plan['id'], 
-                                           plan=obj_plan, path_name='path', 
-                                           color=[1,0,0,1],
+                    self.add_object(Spline(app, vao_name='spline_'+obj_plan['id'], path=obj_plan['path'], color=[1,0,0,1],
                                            coord_sys=coord_transform))
                 else:
                     self.app.mesh.texture.textures[obj_plan['id']] = create_texture_from_rgba(self.app.ctx, rgba=obj_plan['color'])

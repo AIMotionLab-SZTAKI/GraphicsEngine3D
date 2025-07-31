@@ -178,63 +178,6 @@ class DefaultOBJ(BaseModel):
                 self.rot = self.get_rot()
             self.m_model = self.get_model_matrix()
 
-class DroneOBJ(DefaultOBJ):
-    def __init__(self, app, vao_name='drone', 
-                 plan:dict=None, path_name='path',
-                 pos=(0, 0, 0), rot=(0, 0, 0), scale=(1, 1, 1), **kwargs):
-
-        self.vao_name = vao_name
-        self.plan = plan
-        self.path_name = path_name
-        
-        super().__init__(app, vao_name=vao_name, vbo_name='drone', tex_id='drone',
-                         path_obj='objects/drone/MQ-9.obj',
-                         path_texture='objects/drone/MQ-9_Black.png',
-                         normalize_dimensions=True,
-                         pos=pos, rot=rot, scale=scale,
-                         **kwargs)
-
-        self.on_init()
-
-    def on_init(self):
-        self.path = self.plan[self.path_name] # t,x,y,z,rotx,roty,rotz
-        self.rot_available = True if self.path.shape[1] >= 7 else False
-
-        self.path_frame_multiplier = self.path.shape[0]/self.plan['path_extracted'].shape[0]
-        self.shape_scale = 1 / np.max(self.plan['grid_shape'])
-
-        self.frame_index = 0
-        self.pos = self.get_pos()
-        if self.rot_available:
-            self.rot = self.get_rot()
-        self.scale = glm.vec3([x*y for x, y in zip((np.broadcast_to(self.shape_scale*10, 3)), self.scale)])
-        self.m_model = self.get_model_matrix()
-
-        # texture
-        self.texture = self.app.mesh.texture.textures[self.tex_id]
-        self.program['u_texture_0'] = 0
-        self.texture.use(location = 0)
-
-        self.update_uniform_transformation_matrices(update_proj=True)
-        self.update_uniform_light()
-
-    def update(self):
-        self.frame_index = min(int(self.app.clock.time_animation * self.app.clock.FPS_animation * self.path_frame_multiplier), (self.path.shape[0]-1))
-        self.update_model_transform()
-        self.update_uniform_transformation_matrices(update_camPos=True)
-        self.texture.use()
-
-        self.app.info_display.update_info_section(self.vao_name,f'{self.vao_name} pos: {self.pos}, rot: {self.rot}, scale: {self.scale}')
-
-    def get_pos(self):
-        self.translation = 2 * self.shape_scale * (self.path[self.frame_index,1:4] - (np.array(self.plan['grid_shape'])-1)/2)
-        #self.translation = [-self.translation[0], self.translation[2] - 0.5*self.shape_scale, self.translation[1]] # correct for the differences in the coord systems
-        return glm.vec3(self.translation + self.initial_pos)
-        
-    def get_rot(self):
-        self.rotation = self.path[:,4:7][self.frame_index]
-        self.rotation = [self.rotation[0]-np.pi/2,self.rotation[2]-np.pi/2,self.rotation[1]]  # OPENGL: X,Z,Y
-        return glm.vec3(self.rotation + self.initial_rot)
 
 class CubeStatic(BaseModel):
     def __init__(self, app, vao_name='cubeStatic', tex_id='cube', pos=(0, 0, 0), rot=(0, 0, 0), scale=(1, 1, 1), **kwargs):
@@ -317,10 +260,10 @@ class CubeDynamic(BaseModel):
 class Spline(BaseModel):
     def __init__(self, app, vao_name='spline',
                  pos=(0, 0, 0), rot=(0, 0, 0), scale=(1, 1, 1), 
-                 plan:np.ndarray=None, path_name:str=None, color=[1,1,1,1], **kwargs):
+                 path:np.ndarray=np.zeros(4), color=[1,1,1,1], **kwargs):
         
         # Init VBO and VAO before calling super().init !!! (vbo_name = vao_name)
-        app.mesh.vao.vbo.vbos[vao_name] = SplineVBO(app.ctx, reserve = plan[path_name].shape[0]*12)
+        app.mesh.vao.vbo.vbos[vao_name] = SplineVBO(app.ctx, reserve = path.shape[0]*12)
         app.mesh.vao.vaos[vao_name] = app.mesh.vao.get_vao(program = app.mesh.vao.program.programs['spline'], 
                                                            vbo = [app.mesh.vao.vbo.vbos[vao_name]])
         
@@ -328,20 +271,13 @@ class Spline(BaseModel):
 
         self.app = app
         self.vao_name = vao_name
-        self.plan = plan
-        self.path_name = path_name
-        self.path = self.plan[path_name]
+        self.path = path
         self.color = glm.vec4(color)
         self.on_init()
 
     def on_init(self):
-        if 'grid_shape' in self.plan: # Only transform the path if grid, else the path is already normalized
-            self.shape_scale = 1 / np.max(self.plan['grid_shape'])
-            path = 2 * self.shape_scale * (self.path[:, 1:4] - ((np.array(self.plan['grid_shape'])) / 2))
-        else:
-            path = self.path[:, 1:4]  # Use the path as it is, without normalization
+        path = self.path[:, 1:4]  # Use the path as it is, without normalization
         self.app.mesh.vao.vbo.vbos[self.vao_name].vbo.write((path).flatten().astype('f4'))
-        
         self.update_uniform_transformation_matrices(update_proj=True)
 
     def update(self):
@@ -386,6 +322,7 @@ class CoordSys(BaseModel):
 class DefaultSTL(BaseModel):
     def __init__(self, app, vao_name='defaultSTL', vbo_name='defaultSTL', tex_id='test',
                  path_stl='objects/drone/quad.stl',
+                 path:np.ndarray=None, rotation_available:bool=False,
                  pos=(0, 0, 0), rot=(0, 180, 0), scale=(1, 1, 1), **kwargs):
         
         # Add vbo if it does not exist
@@ -397,62 +334,41 @@ class DefaultSTL(BaseModel):
         app.mesh.vao.vaos[vao_name] = app.mesh.vao.get_vao(program = app.mesh.vao.program.programs['STL_default'],
                                                            vbo = [app.mesh.vao.vbo.vbos[vbo_name]])
 
-        super().__init__(app, vao_name, tex_id, pos, rot, scale)
-        self.update_initial_transform_parameters_for_dimension_normalization(vbo_name, normalize_dimensions=True)
-        self.on_init()
-
-    def update(self):
-        self.update_uniform_transformation_matrices(update_camPos=True)
-
-    def on_init(self):
-        self.update_uniform_transformation_matrices(update_proj=True)
-        self.update_uniform_light()
-
-class DroneSTL(DefaultSTL):
-    def __init__(self, app, vao_name='droneSTL',
-                 plan:dict=None, path_name='path_interp_MinimumSnapTrajectory',
-                 pos=(0, 0, 0), rot=(0, 0, 0), scale=(1, 1, 1), **kwargs):
-
         self.vao_name = vao_name
-        self.plan = plan
-        self.path_name = path_name
+        self.path = path
+        self.rot_available = rotation_available
+        self.kwargs = kwargs
 
-        super().__init__(app, vao_name, vbo_name='droneSTL', tex_id='test', 
-                         path_stl='objects/drone/quad.stl', 
-                         pos=pos, rot=rot, scale=scale)
-
+        super().__init__(app, vao_name, tex_id, pos, rot, scale, **kwargs)
+        #self.update_instance_transform_parameters_for_normalization(vbo_name)
         self.on_init()
 
     def on_init(self):
-        self.path_interpolated = self.plan[self.path_name]  # t,x,y,z,rotx,roty,rotz
-        self.path_frame_multiplier = self.path_interpolated.shape[0]/self.plan['path_extracted'].shape[0]
-        self.shape_scale = 1 / (np.max(self.plan['grid_shape']))
-
-        self.frame_index = 0
-        self.pos = self.get_pos()
-        self.scale = glm.vec3(self.initial_scale * self.shape_scale * 8)  # Scale the drone to fit the grid
-        self.m_model = self.get_model_matrix()
-
+        self.update_model_transform()
         self.update_uniform_transformation_matrices(update_proj=True)
         self.update_uniform_light()
 
     def update(self):
-        self.frame_index = min(int(self.app.clock.time_animation * self.app.clock.FPS_animation * self.path_frame_multiplier), (self.path_interpolated.shape[0]-1))
-        self.pos = self.get_pos()
-        self.rot = self.get_rot()
-        self.m_model = self.get_model_matrix()
-
+        self.update_model_transform()
         self.update_uniform_transformation_matrices(update_camPos=True)
 
         self.app.info_display.update_info_section(self.vao_name,f'{self.vao_name} pos: {self.pos}, rot: {self.rot}, scale: {self.scale}')
 
     def get_pos(self):
-        self.translation = 2 * self.shape_scale * (self.path_interpolated[self.frame_index,1:4] - (np.array(self.plan['grid_shape'])-1)/2)
-        self.translation = [-self.translation[0], self.translation[2] - 0.5*self.shape_scale, self.translation[1]] # correct for the differences in the coord systems
-        return glm.vec3(self.translation + np.array(self.initial_pos))
+        closest_time_idx = np.argmin(np.abs(self.path[:, 0] - self.app.clock.time_animation))
+        path_pos = glm.vec3(self.path[closest_time_idx, 1:4])
+        return path_pos + self.initial_pos  # Add initial position as offset
 
     def get_rot(self):
-        if 'path_interp_MinimumSnapTrajectory' in self.plan:
-            self.rotation = self.plan['path_interp_MinimumSnapTrajectory'][:,4:7][self.frame_index]
-            self.rotation = [-self.rotation[1] + np.pi/2, self.rotation[2] , self.rotation[0] + np.pi]
-            return glm.vec3(self.rotation + np.array(self.initial_rot))
+        closest_time_idx = np.argmin(np.abs(self.path[:, 0] - self.app.clock.time_animation))
+        path_rot = glm.vec3(self.path[closest_time_idx, 4:7])  # Assuming the rotation is in radians
+        return path_rot + self.initial_rot  # Add initial rotation as offset
+
+    def update_model_transform(self):
+        if self.path is not None:
+            self.pos = self.get_pos()
+            if self.rot_available:
+                self.rot = self.get_rot()
+            self.m_model = self.get_model_matrix()
+
+    
