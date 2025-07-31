@@ -84,7 +84,7 @@ class Scene:
                                             path=obj_plan['path'],
                                             rotation_available=True,
                                             scale=2*np.array(obj_plan['dimension'])/np.max(obj_plan['world_dimensions']),
-                                            instance_rot=(90,0,0),
+                                            instance_rot=(0,0,0),
                                             coord_sys=coord_transform,
                                             normalize_instance_dimensions=normalize_dimensions,
                                             center_instance=True,
