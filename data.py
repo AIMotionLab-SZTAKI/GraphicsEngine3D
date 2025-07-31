@@ -165,18 +165,3 @@ class Data:
                 obj_plan['path'] = obj_plan['path'].astype(np.float32)  # Convert entire path to float32 first for consistency
                 obj_plan['path'][:,0] = obj_plan['path'][:,0] / self.app.clock.FPS_animation  # Convert time to seconds
                 obj_plan['path'][:,1:4] = obj_plan['path'][:,1:4] / np.max(self.world_dimensions).astype(np.float32)  # Normalize the position, by the largest dimension of the world
-
-
-            # Transform the path to the correct format (OpenGL expects Y and Z to be swapped, and X to be flipped)
-            obj_plan['path'][:,1] = -obj_plan['path'][:,1]  # Flip x axis
-            obj_plan['path'][:,[2,3]] = obj_plan['path'][:,[3,2]]  # Swap y and z
-            if obj_plan['path'].shape[1] >= 7: # Rotation information on indices 4,5,6
-                obj_plan['path'][:,4] = - obj_plan['path'][:,4]  # Flip x axis
-                obj_plan['path'][:,[5,6]] = obj_plan['path'][:,[6,5]]  # Swap y and z
-            if isinstance(obj_plan['dimension'], (tuple, list, np.ndarray)):
-                obj_plan['dimension'] = np.array(obj_plan['dimension'])
-                obj_plan['dimension'][[1, 2]] = obj_plan['dimension'][[2, 1]]  # Swap y and z dimensions
-
-        # If you want to add a custom object .obj file created by an external program,
-        # first open the obj file and comment out lines starting with: 'mtllib' and 'usemtl'
-        # because the DefaultOBJ class can not handle these lines.

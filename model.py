@@ -8,11 +8,12 @@ from OpenGL.GL import *
 from vbo import CubeVBO, CubeStaticInstanceVBO, CubeDynamicInstanceVBO, SplineVBO, CoordSysVBO, DefaultSTL_VBO, DefaultOBJ_VBO
 
 class BaseModel:
-    def __init__(self, app, vao_name, tex_id, pos=(0, 0, 0), rot=(0, 0, 0), scale=(1, 1, 1)):
+    def __init__(self, app, vao_name, tex_id, pos=(0, 0, 0), rot=(0, 0, 0), scale=(1, 1, 1), coord_sys=None, **kwargs):
         self.app = app
         self.pos = glm.vec3(pos)
         self.rot = glm.vec3([glm.radians(a) for a in rot])
         self.scale = glm.vec3(tuple(np.broadcast_to(np.array(scale), 3).astype(float)))
+        self.coord_sys = coord_sys
         self.m_model = self.get_model_matrix()
         self.tex_id = tex_id
         self.vao = app.mesh.vao.vaos[vao_name]
@@ -22,7 +23,7 @@ class BaseModel:
         self.initial_pos = self.pos
         self.initial_rot = self.rot
         self.initial_scale = self.scale
-
+        
     def update(self): ...
 
     def get_model_matrix(self):
@@ -35,7 +36,24 @@ class BaseModel:
         m_model = glm.rotate(m_model, self.rot.x, glm.vec3(1, 0, 0))
         # scale
         m_model = glm.scale(m_model, self.scale)
+
+        if self.coord_sys is not None:
+            m_model = self.coord_sys * m_model
+
         return m_model
+    
+    def get_instance_matrix(self):
+        """Calculate the instance transformation matrix (local coordinate system)"""
+        m_instance = glm.mat4()
+        # translate
+        m_instance = glm.translate(m_instance, self.instance_pos)
+        # rotate
+        m_instance = glm.rotate(m_instance, self.instance_rot.z, glm.vec3(0, 0, 1))
+        m_instance = glm.rotate(m_instance, self.instance_rot.y, glm.vec3(0, 1, 0))
+        m_instance = glm.rotate(m_instance, self.instance_rot.x, glm.vec3(1, 0, 0))
+        # scale
+        m_instance = glm.scale(m_instance, self.instance_scale)
+        return m_instance
 
     def update_uniform_light(self, specular=True):
         self.program['light.position'].write(self.app.light.position)
@@ -43,39 +61,38 @@ class BaseModel:
         self.program['light.Id'].write(self.app.light.Id)
         if specular: self.program['light.Is'].write(self.app.light.Is)
 
-    def update_uniform_transformation_matrices(self, update_proj=False, update_camPos=False):
-        ''' Update the model-view-projection matrices in the shader '''
+    def update_uniform_transformation_matrices(self, update_instance=False, update_proj=False, update_camPos=False):
+        ''' Update the instance-model-view-projection matrices in the shader '''
+        if update_instance: self.program['m_instance'].write(self.get_instance_matrix())  # Add instance matrix
         self.program['m_model'].write(self.m_model)
         self.program['m_view'].write(self.camera.m_view)
         if update_proj: self.program['m_proj'].write(self.camera.m_proj)
         if update_camPos: self.program['camPos'].write(self.camera.position)
 
-    def set_offset_parameters_for_dimension_normalization(self, vertex_data, mode='max'):
-        """ Set the offset scale for dimension normalization based on vertex data. """
-        if mode in ['max', 'unit']:
+    def update_instance_transform_parameters_for_normalization(self, vbo_name):
+        if any(k in self.kwargs for k in ['normalize_instance_dimensions', 'center_instance']):
+            vertex_data = self.app.mesh.vao.vbo.vbos[vbo_name].vertex_data
             vertex_data = vertex_data.reshape(-1, 8)         # Reshape the vertex data into a (N, 8) array, format: [texcoord, normal, position]
             vertex_positions = vertex_data[:, 5:8]           # Extract the position data
             min_coords = np.min(vertex_positions, axis=0)    # Calculate the min and max for each axis (x, y, z)
             max_coords = np.max(vertex_positions, axis=0)
-            bbox = max_coords - min_coords                  # Bounding box dimensions
-            if mode == 'max':
-                self.offset_scale = float(1 / np.max(bbox)) # Keep aspect ratio, divide by the largest dimension
-            elif mode == 'unit':
-                self.offset_scale = 1 / bbox                # Rescale to unit cube
-        else:
-            raise ValueError("Invalid mode for dimension normalization. Use 'max' or 'unit'.")
+            bbox = max_coords - min_coords                   # Calculate the bounding box dimensions
 
-    def update_initial_transform_parameters_for_dimension_normalization(self, vbo_name):
-        if 'normalize_dimensions' in self.kwargs:
-            self.set_offset_parameters_for_dimension_normalization(self.app.mesh.vao.vbo.vbos[vbo_name].vertex_data, mode=self.kwargs['normalize_dimensions'])
-        else:
-            self.offset_scale = 1
+            if 'normalize_instance_dimensions' in self.kwargs:
+                # Normalize the instance dimensions based on the bounding box
+                if self.kwargs['normalize_instance_dimensions'] == 'max':
+                    self.instance_scale = float(1 / np.max(bbox)) # Keep aspect ratio, divide by the largest dimension
+                elif self.kwargs['normalize_instance_dimensions'] == 'unit':
+                    self.instance_scale = 1 / bbox                # Rescale to unit cube
+                else:
+                    raise ValueError("Invalid value for 'normalize_instance_dimensions'. Use 'max' or 'unit'.")
+            
+            if 'center_instance' in self.kwargs:
+                # Center the instance first, before normalization
+                self.instance_pos = - (min_coords + max_coords) / 2
 
-        self.initial_scale = glm.vec3(tuple(np.broadcast_to(np.array(self.offset_scale) * np.array(self.initial_scale), 3).astype(float)))
-
-        self.pos = glm.vec3(self.initial_pos)
-        self.rot = glm.vec3(self.initial_rot)
-        self.scale = glm.vec3(self.initial_scale)
+        self.instance_pos = glm.vec3(self.instance_pos * self.instance_scale + self.instance_pos_init)
+        self.instance_scale = glm.vec3(self.instance_scale * self.instance_scale_init)
 
     def render(self):
         self.update()
@@ -85,22 +102,14 @@ class DefaultOBJ(BaseModel):
     def __init__(self, app, vao_name='default', vbo_name='default', tex_id='test', 
                  path_obj='objects/terrain/terrain.obj', path_texture='objects/terrain/terrain.png',
                  path:np.ndarray=None, rotation_available:bool=False,
-                 pos=(0, 0, 0), rot=(0, 0, 0), scale=(1, 1, 1), **kwargs):
+                 pos=(0, 0, 0), rot=(0, 0, 0), scale=(1, 1, 1),
+                 instance_pos=(0, 0, 0), instance_rot=(0, 0, 0), instance_scale=(1, 1, 1),
+                 coord_sys=None, **kwargs):
         '''kwargs:
         - alpha: float, default 1.0, transparency of the object
-        - normalize_dimensions: str, 'max' or 'unit', default 'None', how to normalize the dimensions of the object
-        - center_obj: bool, default False, whether to center the object (using its bounding box) before loading it to the vbo
+        - normalize_instance_dimensions: str, 'max' or 'unit'
+        - center_instance: bool, default False, whether to center the object (using its bounding box) before loading it to the vbo
         '''
-
-        # Center the obj file before loading it to the vbo
-        if 'center_obj' in kwargs and kwargs['center_obj'] and not vbo_name in app.mesh.vao.vbo.vbos:
-            if (Path(__file__).parent/path_obj).with_suffix('.obj.bin').exists():
-                print('The OBJ file centering is only executed if a new .obj file is added or updated. ' \
-                      'Delete the cache files if the .obj file is updated.')
-            else:
-                from utils import center_obj_file
-                center_obj_file(path=Path(__file__).parent/path_obj)
-                print(f'OBJ file {path_obj} centered successfully.')
 
         # Add vbo if it does not exist
         if not vbo_name in app.mesh.vao.vbo.vbos: # Only create the VBO once
@@ -120,8 +129,16 @@ class DefaultOBJ(BaseModel):
         self.rot_available = rotation_available
         self.kwargs = kwargs
 
-        super().__init__(app, vao_name, tex_id, pos, rot, scale)
-        self.update_initial_transform_parameters_for_dimension_normalization(vbo_name)
+        # Instance transformation parameters
+        self.instance_pos = glm.vec3(instance_pos)
+        self.instance_rot = glm.vec3([glm.radians(a) for a in instance_rot])
+        self.instance_scale = glm.vec3(tuple(np.broadcast_to(np.array(instance_scale), 3).astype(float)))
+        self.instance_pos_init = self.instance_pos
+        self.instance_rot_init = self.instance_rot
+        self.instance_scale_init = self.instance_scale
+
+        super().__init__(app, vao_name, tex_id, pos, rot, scale, coord_sys)
+        self.update_instance_transform_parameters_for_normalization(vbo_name)
         self.on_init()
 
     def on_init(self):
@@ -133,16 +150,16 @@ class DefaultOBJ(BaseModel):
         self.program['u_texture_0'] = 0
         self.texture.use(location = 0)
 
-        self.update_uniform_transformation_matrices(update_proj=True)
+        self.update_uniform_transformation_matrices(update_instance=True, update_proj=True)
         self.update_uniform_light()
 
     def update(self):
         self.update_model_transform()
-        self.update_uniform_transformation_matrices(update_camPos=True)
+        self.update_uniform_transformation_matrices(update_instance=True, update_camPos=True)
         self.program['alpha'] = self.kwargs['alpha'] if 'alpha' in self.kwargs else 1.0
         self.texture.use()
         
-        self.app.info_display.update_info_section(self.vao_name,f'{self.vao_name} pos: {self.pos}, rot: {self.rot}, scale: {self.scale}')
+        self.app.info_display.update_info_section(self.vao_name,f'{self.vao_name} pos: {self.pos}, rot: {self.rot}, scale: {self.scale}, ipos: {self.instance_pos}, irot: {self.instance_rot}, iscale: {self.instance_scale}')
 
     def get_pos(self):
         closest_time_idx = np.argmin(np.abs(self.path[:, 0] - self.app.clock.time_animation))
@@ -299,14 +316,14 @@ class CubeDynamic(BaseModel):
 class Spline(BaseModel):
     def __init__(self, app, vao_name='spline',
                  pos=(0, 0, 0), rot=(0, 0, 0), scale=(1, 1, 1), 
-                 plan:np.ndarray=None, path_name:str=None, color=[1,1,1,1]):
+                 plan:np.ndarray=None, path_name:str=None, color=[1,1,1,1], **kwargs):
         
         # Init VBO and VAO before calling super().init !!! (vbo_name = vao_name)
         app.mesh.vao.vbo.vbos[vao_name] = SplineVBO(app.ctx, reserve = plan[path_name].shape[0]*12)
         app.mesh.vao.vaos[vao_name] = app.mesh.vao.get_vao(program = app.mesh.vao.program.programs['spline'], 
                                                            vbo = [app.mesh.vao.vbo.vbos[vao_name]])
         
-        super().__init__(app, vao_name, None, pos, rot, scale)
+        super().__init__(app, vao_name, None, pos, rot, scale, **kwargs)
 
         self.app = app
         self.vao_name = vao_name
@@ -337,7 +354,7 @@ class Spline(BaseModel):
         self.app.ctx.line_width = 1 # RESET
 
 class CoordSys(BaseModel):
-    def __init__(self, app, vao_name='coordsys', tex_id='None', pos=(0, 0, 0), rot=(0, 0, 0), scale=(1, 1, 1)):
+    def __init__(self, app, vao_name='coordsys', tex_id='None', pos=(0, 0, 0), rot=(0, 0, 0), scale=(1, 1, 1), **kwargs):
         self.data=np.array([0,0,0,1,0,0,1,  1,0,0,1,0,0,1,
                             0,0,0,0,1,0,1,  0,1,0,0,1,0,1,
                             0,0,0,0,0,1,1,  0,0,1,0,0,1,1])
@@ -346,7 +363,7 @@ class CoordSys(BaseModel):
         app.mesh.vao.vbo.vbos[vao_name] = CoordSysVBO(app.ctx, reserve = self.data.shape[0]*28)
         app.mesh.vao.vaos[vao_name] = app.mesh.vao.get_vao(program = app.mesh.vao.program.programs['coordsys'],
                                                            vbo = [app.mesh.vao.vbo.vbos[vao_name]])
-        super().__init__(app, vao_name, tex_id, pos, rot, scale)
+        super().__init__(app, vao_name, tex_id, pos, rot, scale, **kwargs)
 
         self.vao_name = vao_name
 
@@ -368,7 +385,7 @@ class CoordSys(BaseModel):
 class DefaultSTL(BaseModel):
     def __init__(self, app, vao_name='defaultSTL', vbo_name='defaultSTL', tex_id='test',
                  path_stl='objects/drone/quad.stl',
-                 pos=(0, 0, 0), rot=(0, 180, 0), scale=(1, 1, 1)):
+                 pos=(0, 0, 0), rot=(0, 180, 0), scale=(1, 1, 1), **kwargs):
         
         # Add vbo if it does not exist
         if not vbo_name in app.mesh.vao.vbo.vbos: # The same VBO is used for all drones, so it is created only once
@@ -393,8 +410,8 @@ class DefaultSTL(BaseModel):
 class DroneSTL(DefaultSTL):
     def __init__(self, app, vao_name='droneSTL',
                  plan:dict=None, path_name='path_interp_MinimumSnapTrajectory',
-                 pos=(0, 0, 0), rot=(0, 0, 0), scale=(1, 1, 1)):
-        
+                 pos=(0, 0, 0), rot=(0, 0, 0), scale=(1, 1, 1), **kwargs):
+
         self.vao_name = vao_name
         self.plan = plan
         self.path_name = path_name
@@ -438,41 +455,3 @@ class DroneSTL(DefaultSTL):
             self.rotation = self.plan['path_interp_MinimumSnapTrajectory'][:,4:7][self.frame_index]
             self.rotation = [-self.rotation[1] + np.pi/2, self.rotation[2] , self.rotation[0] + np.pi]
             return glm.vec3(self.rotation + np.array(self.initial_rot))
-
-# DEPRECATED: Renders the whole grid_seq without making a distinction between static and dynamic objects
-class Cube(BaseModel):
-    def __init__(self, app, vao_name='cube', tex_id='cube', pos=(0, 0, 0), rot=(0, 0, 0), scale=(1, 1, 1)):
-        super().__init__(app, vao_name, tex_id, pos, rot, scale)
-        self.on_init()
-
-    """ To render the cubes with instancing we need to pass the 'frame' 
-        which is a numpy array to the shader somehow
-        Solution: (the ModernGL way: described in moderngl/examples/instanced_rendering_crates)
-        Include all the data needed for the shader to render in the VAO object
-        with a format: 3f/i, where the i qualifier refers to instancing
-        This means that when instancing some variables of the vertex array buffer 
-        is updated in a loop. In our case we would have to include and update """
-
-    def update(self):
-        # grid_seq
-        frame_index = min(int(self.app.clock.time * self.app.clock.FPS_animation), self.grid_seq.shape[0] - 1)
-        self.frame = self.app.data.grid_seq[frame_index].astype('f4')
-        self.app.mesh.vao.vbo.vbos['cubeInstanceValue'].vbo.write(np.array(self.frame.flatten()).astype('f4'))
-
-        self.update_uniform_transformation_matrices()
-
-    def on_init(self):
-        self.frame = self.app.data.grid_seq[0].astype('f4')
-
-        frame_indices = np.indices(self.frame.shape).reshape((3, -1)).T
-        self.program['shape'].write(glm.ivec3(*self.frame.shape))   # uniform variable
-
-        self.app.mesh.vao.vbo.vbos['cubeInstanceIndex'].vbo.write(np.array(frame_indices.flatten()).astype(int))
-        self.app.mesh.vao.vbo.vbos['cubeInstanceValue'].vbo.write(np.array(self.frame.flatten()).astype('f4'))      
-
-        self.update_uniform_transformation_matrices()
-        self.update_uniform_light(specular=False)
-
-    def render(self):
-        self.update()
-        self.vao.render(instances = np.prod(self.frame.shape))

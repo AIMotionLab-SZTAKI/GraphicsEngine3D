@@ -192,41 +192,6 @@ def create_texture_from_rgba(ctx, rgba, size=(1, 1)):
     
     return texture
 
-def center_obj_file(path):
-    ''' Center the vertices of an OBJ file around the origin and comment out mtl lines.'''
-    vertices = []
-    lines = []
-
-    with open(path, 'r') as f:
-        for line in f:
-            if line.startswith('v '):
-                parts = line.strip().split()
-                vertex = list(map(float, parts[1:4]))
-                vertices.append(vertex)
-            lines.append(line)
-
-    vertices = np.array(vertices)
-    #bbox = vertices.max(axis=0) - vertices.min(axis=0)
-    #centered_vertices = vertices - (bbox / 2)
-    centroid = np.mean(vertices, axis=0)
-    centered_vertices = vertices - centroid
-
-    vert_idx = 0
-    with open(path, 'w') as f:
-        for line in lines:
-            if line.startswith('v '):
-                v = centered_vertices[vert_idx]
-                f.write(f"v {v[0]:.6f} {v[1]:.6f} {v[2]:.6f}\n")
-                vert_idx += 1
-            elif 'mtl' in line:
-                # Comment out lines containing 'mtl'
-                if not line.startswith('#'):
-                    f.write(f"#{line}")
-                else:
-                    f.write(line)
-            else:
-                f.write(line)
-
 def get_demo_heightmap_from_grid_static():
     grid_static_path = Path(__file__).parents[1] / 'Data/Processing/demo_5drones/grid_static.npz'
     grid_static = np.load(grid_static_path)['grid_static']  # shape: (x, y, z)
@@ -278,7 +243,7 @@ def get_demo_data_for_obj_plans():
     import matplotlib.pyplot as plt
     plt.figure(figsize=(10, 6))
     for i in range(4, 7):
-        plt.scatter(path4[:,0], path4[:, i], label=f'Column {i}')
+        plt.scatter(path2[:,0], path2[:, i], label=f'Column {i}')
     plt.legend()
     plt.tight_layout()
     plt.show()

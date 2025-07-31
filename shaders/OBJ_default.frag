@@ -4,7 +4,7 @@ in vec2 uv_0;       // texture coordinate
 in vec3 normal;     // normal vector of the plane
 in vec3 fragPos;    // fragment (pixel) position
 
-layout (location = 0) out vec4 fragColor;
+out vec4 fragColor;
 
 struct Light {
     vec3 position;  // light position

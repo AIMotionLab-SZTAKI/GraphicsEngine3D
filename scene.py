@@ -14,7 +14,14 @@ class Scene:
 
     def load(self):
         app = self.app
-        self.add_object(CoordSys(app, vao_name='coordsys_WORLD', pos=(0,0.4,0), rot=(90,0,180), scale=0.1))
+
+        coord_transform = glm.mat4(
+                -1,  0,  0,  0,  # negate x
+                 0,  0,  1,  0,  # z -> y
+                 0,  1,  0,  0,  # y -> z
+                 0,  0,  0,  1)
+
+        self.add_object(CoordSys(app, vao_name='coordsys_WORLD', pos=(0,0,0.4), rot=(0,0,0), scale=0.1, coord_sys=coord_transform))
         self.add_object(CoordSys(app, vao_name='coordsys_WORLD_OPENGL', pos=(0,0.1,0), rot=(0,0,0), scale=0.1))
         #self.add_object(CoordSys(app, vao_name='coordsys_MAP_ORIGIN', pos=(1,0,-1), rot=(90,0,180), scale=0.1))
         #self.add_object(CoordSys(app, vao_name='coordsys_MAP_ORIGIN_OPENGL', pos=(1,0,-1), rot=(0,0,0), scale=0.1))
@@ -44,27 +51,29 @@ class Scene:
             self.add_object(CubeDynamic(app, rot=(90,0,180)))   # total instanced cube size: 2x2x2
 
         if 'terrain' in self.scene:
-            rot = (90,0,180) if 'grid' not in self.scene else (90,90,180) # SOLUTION NEEDED TO DISCTINGUISH BETWEEN GRID AND CONTINOUS WORLD
+            rot = (0,0,0) if 'grid' not in self.scene else (0,90,0) # SOLUTION NEEDED TO DISCTINGUISH BETWEEN GRID AND CONTINOUS WORLD
             self.add_object(DefaultOBJ(app, vao_name='terrain', vbo_name='terrain', tex_id='terrain',
                                     path_obj='objects/terrain/terrain.obj',
                                     path_texture='objects/terrain/terrain.png',
-                                    rot=rot, scale=1))
+                                    rot=rot, scale=1,
+                                    coord_sys=coord_transform))
 
         if 'obj' in self.scene:
             for obj_plan in self.app.data.obj_plans:
                 if obj_plan['type'] == 'drone':
                     tex_id = 'drone' # same texture for all drones
                     path_texture = 'objects/drone/MQ-9_Diffuse.jpg'
-                    rot=(0,180,0) # rotate drone to face the correct X+ direction
+                    instance_rot=(90,0,0) # rotation for drone
 
                     self.add_object(Spline(app, vao_name='spline_'+obj_plan['id'], 
                                            plan=obj_plan, path_name='path', 
-                                           color=[1,0,0,1]))
+                                           color=[1,0,0,1],
+                                           coord_sys=coord_transform))
                 else:
                     self.app.mesh.texture.textures[obj_plan['id']] = create_texture_from_rgba(self.app.ctx, rgba=obj_plan['color'])
                     tex_id = obj_plan['id'] # separete texture for each object
                     path_texture = None
-                    rot=(0,0,0) # Possibly no rotation needed for other objects
+                    instance_rot=(90,0,0) # Possibly no rotation needed for other objects
 
                     if isinstance(obj_plan['dimension'], (float, int)): # If dimension is a single value, normalize dimensions with keeping aspect ratio
                         normalize_dimensions = 'max' # normalize by the largest dimension of the instance
@@ -78,14 +87,22 @@ class Scene:
                                             path_texture=path_texture,
                                             path=obj_plan['path'],
                                             rotation_available=True,
-                                            normalize_dimensions=normalize_dimensions,
-                                            center_obj=False,
-                                            rot=rot,
                                             scale=2*np.array(obj_plan['dimension'])/np.max(obj_plan['world_dimensions']),
+                                            instance_rot=instance_rot,
+                                            coord_sys=coord_transform,
+                                            normalize_instance_dimensions=normalize_dimensions,
+                                            center_instance=True,
                                             alpha=obj_plan['color'][3]))
-             
-        '''self.add_object(DefaultOBJ(app, vao_name='cat', vbo_name='cat', tex_id='cat', path_obj='objects/cat/20430_Cat_v1_NEW.obj',
-                                      path_texture='objects/cat/20430_cat_diff_v1.jpg', normalize_dimensions=True))'''
+        
+        self.add_object(DefaultOBJ(app, vao_name='drone_WORLD_OPENGL', vbo_name='drone', tex_id='cat',
+                                   path_obj='objects/obj/drone.obj',
+                                   path_texture='objects/drone/MQ-9_Diffuse.jpg',
+                                   pos=(0, 0.1, 0), scale=0.01))
+        self.add_object(DefaultOBJ(app, vao_name='drone_WORLD', vbo_name='drone', tex_id='cat',
+                                   path_obj='objects/obj/drone.obj',
+                                   path_texture='objects/drone/MQ-9_Diffuse.jpg',
+                                   coord_sys=coord_transform, instance_rot=(90, 0, 180),
+                                   pos=(0, 0, 0.4), scale=0.01))
         
     def render(self):
         for obj in self.objects:
