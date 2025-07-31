@@ -159,7 +159,15 @@ class DefaultOBJ(BaseModel):
         self.program['alpha'] = self.kwargs['alpha'] if 'alpha' in self.kwargs else 1.0
         self.texture.use()
         
-        self.app.info_display.update_info_section(self.vao_name,f'{self.vao_name} pos: {self.pos}, rot: {self.rot}, scale: {self.scale}, ipos: {self.instance_pos}, irot: {self.instance_rot}, iscale: {self.instance_scale}')
+        def fmt(v):
+            # Convert glm.vec3 or vec4 to tuple, format each float with .3f unless it's an integer
+            return tuple(float(f"{x:.3f}") if abs(x) >= 0.001 else int(x) if abs(x) < 0.001 else x for x in v)
+
+        self.app.info_display.update_info_section(
+            self.vao_name,
+            f"{self.vao_name} pos: {fmt(self.pos)}, rot: {fmt(self.rot)}, scale: {fmt(self.scale)}, "
+            f"ipos: {fmt(self.instance_pos)}, irot: {fmt(self.instance_rot)}, iscale: {fmt(self.instance_scale)}"
+        )
 
     def get_pos(self):
         closest_time_idx = np.argmin(np.abs(self.path[:, 0] - self.app.clock.time_animation))
@@ -233,7 +241,7 @@ class CubeDynamic(BaseModel):
     def update(self):
         # grid_seq
         frame_index_prev = self.frame_index
-        self.frame_index = min(int(self.app.clock.time_animation * self.app.clock.FPS_animation), self.grid_seq_dynamic_instancelist.shape[0] - 1)
+        self.frame_index = min(int(self.app.clock.time_animation), self.grid_seq_dynamic_instancelist.shape[0] - 1)
         if self.frame_index != frame_index_prev:
             self.frame = self.grid_seq_dynamic_instancelist[self.frame_index]
             self.app.mesh.vao.vbo.vbos['cubeDynamicInstance'].vbo.write(np.array(self.frame.flatten()).astype('f4'))

@@ -263,15 +263,11 @@ class Data:
             print(f"Object plan {obj_plan['id']} loaded, type: {obj_plan['type']}, path shape: {obj_plan['path'].shape} start: {obj_plan['path'][0,1:4]}, dimension: {obj_plan['dimension']}, world dimensions: {obj_plan['world_dimensions']}")
 
             if np.issubdtype(obj_plan['path'].dtype, np.floating):
-                print('Path is of type float, time is already in seconds, path is in SI units, no conversion needed')
-
-                obj_plan['path'][:,0] = obj_plan['path'][:,0] / self.app.clock.FPS_animation  # DEBUG: Make it faster 
+                print('Path is of type float (SI units), centering/scaling the path')
                 obj_plan['path'][:,1:4] = obj_plan['path'][:,1:4] - self.world_dimensions/2 # center
-                obj_plan['path'][:,1:4] = 2 * obj_plan['path'][:,1:4] / np.max(self.world_dimensions).astype(np.float32)  # Normalize the position, by the largest dimension of the world
+                obj_plan['path'][:,1:4] = 2 * obj_plan['path'][:,1:4] / np.max(self.world_dimensions).astype(np.float32)
 
             if np.issubdtype(obj_plan['path'].dtype, np.integer):
-                print('Path is of type int, converting time to seconds from timestep with FPS_animation and path is in grid units, converting to SI units')
-
-                obj_plan['path'] = obj_plan['path'].astype(np.float32)  # Convert entire path to float32 first for consistency
-                obj_plan['path'][:,0] = obj_plan['path'][:,0] / self.app.clock.FPS_animation  # Convert time to seconds
-                obj_plan['path'][:,1:4] = obj_plan['path'][:,1:4] / np.max(self.world_dimensions).astype(np.float32)  # Normalize the position, by the largest dimension of the world
+                print('Path is of type int (Grid units), converting to SI units and centering/scaling the path')
+                obj_plan['path'] = obj_plan['path'].astype(np.float32)
+                obj_plan['path'][:,1:4] = obj_plan['path'][:,1:4] / np.max(self.world_dimensions).astype(np.float32)

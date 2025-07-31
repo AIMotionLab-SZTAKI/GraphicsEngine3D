@@ -60,14 +60,18 @@ class GraphicsEngine:
                 self.take_screenshot()
             elif (event.type == pg.KEYDOWN and event.key == pg.K_SPACE): # Pause animation
                 self.clock.paused = not self.clock.paused
-            elif (self.clock.paused and event.type == pg.KEYDOWN and event.key == pg.K_RIGHT):
-                self.clock.time_animation = self.clock.time_animation + 1 / self.clock.FPS_animation
-            elif (self.clock.paused and event.type == pg.KEYDOWN and event.key == pg.K_LEFT):
-                self.clock.time_animation = self.clock.time_animation - 1 / self.clock.FPS_animation
             elif (event.type == pg.KEYDOWN and event.key == pg.K_i): # I: Interpolate camera movement
                 self.camera.camera_interp = not self.camera.camera_interp
             elif (event.type == pg.KEYDOWN and event.key == pg.K_h): # H: Toggle info display
                 self.info_display.toggle_visibility()
+            elif (self.clock.paused and event.type == pg.KEYDOWN and event.key == pg.K_RIGHT):
+                self.clock.time_animation = self.clock.time_animation + 1 / self.clock.time_animation_multiplier
+            elif (self.clock.paused and event.type == pg.KEYDOWN and event.key == pg.K_LEFT):
+                self.clock.time_animation = self.clock.time_animation - 1 / self.clock.time_animation_multiplier
+            elif (event.type == pg.KEYDOWN and event.key == pg.K_UP):
+                self.clock.time_animation_multiplier += 1
+            elif (event.type == pg.KEYDOWN and event.key == pg.K_DOWN):
+                self.clock.time_animation_multiplier = max(0, self.clock.time_animation_multiplier - 1)
 
     def render(self):
         self.ctx.clear(color=(0.08, 0.16, 0.18))    # clear framebuffer

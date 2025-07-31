@@ -99,7 +99,9 @@ class InfoDisplay:
     def _setup_default_info(self):
         """Setup default information sections using f-string templates."""
         self.info_sections = [
-            {'controls': '''Controls: \n ESC - Exit \n R - Reset animation \n P - Screenshot \n SPACE - Pause/Resume \n LEFT/RIGHT - Frame step \n I - Camera movement interpolation \n H - Info display'''},
+            {'controls': '''Controls: \n ESC - Exit \n H - Info display \n P - Screenshot \n I - Camera movement interpolation \n'''\
+             ''' R - Reset animation \n SPACE - Pause/Resume animation\n ''' \
+             ''' LEFT/RIGHT - Step when paused \n UP/DOWN - Change animation speed multiplier'''},
             {'separator': ''},
             {'camera': 'Camera: {self.app.camera.get_camera_str()}' if hasattr(self.app, 'camera') else 'Camera Position: N/A'},
         ]
