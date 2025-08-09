@@ -128,16 +128,16 @@ class Camera:
         """ Fallback method with hardcoded data (for backward compatibility). """
         positions = np.array([ # t,x,y,z (absolute time scale)
             [0,   1.54, 1, 0], 
-            [10,  1.08, 1, -1.13],
-            [20,  0,    1, -1.6]])
+            [750,  1.08, 1, -1.13],
+            [1500,  0,    1, -1.6]])
         
-        yaws = np.array([ # t, deg (now using degrees by default)
+        yaws = np.array([ # t, deg
             [0, 180],
-            [20, 90]])
-        
-        pitches = np.array([ # t, deg (now using degrees by default)
+            [1500, 90]])
+
+        pitches = np.array([ # t, deg
             [0, -41],
-            [20, -38]])
+            [1500, -38]])
 
         self.camera_interp_data = interpolate_camera_movement(positions, yaws, pitches)
         self.camera_interp_end = positions[-1, 0]  # Last time point for interpolation end
@@ -163,15 +163,10 @@ class Camera:
 
         if t > self.camera_interp_end:
             self.camera_interp = False  # Stop interpolation if time exceeds last keyframe
-
-
-        self.position = glm.vec3(self.camera_interp_data["position"](t))
-        self.yaw = self.camera_interp_data["yaw"](t)  # Already in degrees
-        self.pitch = self.camera_interp_data["pitch"](t)  # Already in degrees
-        
-        # Debug print (remove this in production)
-        if hasattr(self.app, 'debug_camera') and self.app.debug_camera:
-            print(f"t={t:.2f}, yaw_deg={self.yaw:.1f}, pitch_deg={self.pitch:.1f}")
+        else:
+            self.position = glm.vec3(self.camera_interp_data["position"](t))
+            self.yaw = self.camera_interp_data["yaw"](t)  # Already in degrees
+            self.pitch = self.camera_interp_data["pitch"](t)  # Already in degrees
 
 def interpolate_camera_movement(positions, yaws, pitches):
     """
@@ -208,15 +203,3 @@ def interpolate_camera_movement(positions, yaws, pitches):
     return {"position": lambda t: np.array([spline_x(t), spline_y(t), spline_z(t)]),
             "yaw": spline_yaw,
             "pitch": spline_pitch}
-
-
-
-
-
-
-
-
-
-
-
-
