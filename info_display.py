@@ -9,10 +9,10 @@ class InfoDisplay:
     Uses pygame for text rendering and ModernGL for overlay rendering.
     """
     
-    def __init__(self, graphics_engine):
-        self.app = graphics_engine
-        self.ctx = graphics_engine.ctx
-        self.win_size = graphics_engine.WIN_SIZE
+    def __init__(self, app):
+        self.app = app
+        self.ctx = app.ctx
+        self.win_size = app.WIN_SIZE
         
         # Initialize pygame font
         pg.font.init()

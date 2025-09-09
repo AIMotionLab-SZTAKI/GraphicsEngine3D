@@ -16,7 +16,7 @@ from data import Data
 from info_display import InfoDisplay
 
 class GraphicsEngine:
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs): # kwargs: folder
         self.folder = Path(kwargs.get('folder', '.'))
         self.config = Config(self.folder)
         self.WIN_SIZE = self.config.get('app.window_size', [1920, 1080])
@@ -38,8 +38,8 @@ class GraphicsEngine:
 
         self.clock  = Clock(self)
         self.data   = Data(self)
-        self.light  = Light()
-        self.camera = Camera(self, position=(2,0.5,0), yaw=180, pitch=-20)
+        self.light  = Light(self)
+        self.camera = Camera(self)
         self.mesh   = Mesh(self)
         self.scene  = Scene(self)
         self.info_display = InfoDisplay(self)

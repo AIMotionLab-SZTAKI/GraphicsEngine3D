@@ -35,6 +35,17 @@ class Config():
                 'time_animation_multiplier': 15,
                 'paused': False
             },
+            'camera': {
+                'position': (2,0.5,0),
+                'yaw': 180,
+                'pitch': -20,
+            },
+            'light': {
+                'position': (10, 30, 10),
+                'ambient_intensity': 0.065,
+                'diffuse_intensity': 0.8,
+                'specular_intensity': 1.0
+            }
         }
         
         # Comments for each configuration entry
@@ -189,6 +200,15 @@ class Config():
 
         print(f"Configuration exported to: {filepath}. Scene set to ['all'] for export.")
 
+    def get(self, key, default=None):
+        """Get configuration value with default if key not found"""
+        if not key in self:
+            if default is not None:
+                self[key] = default
+            else:
+                return None
+        return self[key]
+
     # Dict-like interface methods
     def __getitem__(self, key):
         if '.' in key:
@@ -217,15 +237,6 @@ class Config():
             return True
         except KeyError:
             return False
-    
-    def get(self, key, default=None):
-        """Get configuration value with default if key not found"""
-        if not key in self:
-            if default is not None:
-                self[key] = default
-            else:
-                return None
-        return self[key]
 
     def items(self):
         return self._config.items()
