@@ -11,10 +11,7 @@ import traceback
 class Data:
     def __init__(self, app):
         self.app = app
-        try:
-            self.folder = Path(app.config['folder'])
-        except:
-            print(f"Invalid folder path: {app.config['folder']}. Please provide a valid path.")
+        self.folder = self.app.config['folder']
 
         # grid_seq: np.ndarray with indices: time,x,y,z
         # plans: list of dictionaries for every object to plot
@@ -27,18 +24,17 @@ class Data:
             'terrain': self.load_terrain
         }
 
-        self.scene = app.config['scene'] if isinstance(app.config['scene'], list) else [app.config['scene']]
-        if 'all' in self.scene:
-            self.scene = list(load_func_dict.keys())
+        if 'all' in app.config['scene']:
+            app.config['scene'] = list(load_func_dict.keys())
         for key in load_func_dict:
-            if key in self.scene:
+            if key in app.config['scene']:
                 try:
                     load_func_dict[key]()
                     pass
                 except Exception:
-                    if key in self.scene: self.scene.remove(key)
+                    if key in app.config['scene']: app.config['scene'].remove(key)
 
-        print(f'Successfully Loaded scene objects: {self.scene}')
+        print(f'Successfully Loaded scene objects: {app.config["scene"]}')
 
     def load_grid(self):
         try:
@@ -157,7 +153,7 @@ class Data:
                     heightmap = np.load(heightmap_file)
                     print(f'Heightmap shape: {heightmap.shape}')
                     
-                    if 'grid' in self.scene:
+                    if 'grid' in self.app.config['scene']:
                         self.world_dimensions_original = self.world_dimensions
                         self.world_dimensions = np.array([127,63,31])
 

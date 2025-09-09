@@ -3,9 +3,9 @@ from model import *
 from utils import create_texture_from_rgba
 
 class Scene:
-    def __init__(self, app, scene=['all']):
+    def __init__(self, app):
         self.app = app
-        self.scene = scene
+        self.scene = app.config['scene']
         self.objects = []
         self.load()
 
@@ -87,19 +87,11 @@ class Scene:
                                             normalize_instance_dimensions=normalize_dimensions,
                                             center_instance=True,
                                             alpha=alpha))
-        '''
-        self.add_object(DefaultOBJ(app, vao_name='drone_WORLD_OPENGL', vbo_name='drone', tex_id='cat',
-                                   path_obj='objects/obj/drone.obj',
-                                   path_texture='objects/drone/MQ-9_Diffuse.jpg',
-                                   pos=(0, 0.1, 0), scale=0.01))
-        self.add_object(DefaultOBJ(app, vao_name='drone_WORLD', vbo_name='drone', tex_id='cat',
-                                   path_obj='objects/obj/drone.obj',
-                                   path_texture='objects/drone/MQ-9_Diffuse.jpg',
-                                   coord_sys=coord_transform, instance_rot=(90, 0, 180),
-                                   pos=(0, 0, 0.4), scale=0.01))
-        '''
         
-                                   
+        #self.add_object(DefaultOBJ(app, vao_name='drone_WORLD', vbo_name='drone', tex_id='cat',
+        #                           path_obj='objects/obj/drone.obj', path_texture='objects/drone/MQ-9_Diffuse.jpg',
+        #                           coord_sys=coord_transform, instance_rot=(90, 0, 180), pos=(0, 0, 0.4), scale=0.01))
+
     def render(self):
         for obj in self.objects:
             obj.render()

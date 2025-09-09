@@ -5,6 +5,7 @@ from datetime import datetime
 import argparse
 from pathlib import Path
 
+from config import Config
 from clock import Clock
 from model import *
 from camera import Camera
@@ -15,9 +16,10 @@ from data import Data
 from info_display import InfoDisplay
 
 class GraphicsEngine:
-    def __init__(self, win_size=(1920, 1080), **kwargs):
-        self.config = kwargs
-        self.WIN_SIZE = win_size
+    def __init__(self, **kwargs):
+        self.folder = Path(kwargs.get('folder', '.'))
+        self.config = Config(self.folder)
+        self.WIN_SIZE = self.config.get('app.window_size', [1920, 1080])
         # init pygame modules
         pg.init()
         # set opengl attr
@@ -34,12 +36,12 @@ class GraphicsEngine:
         # self.ctx.front_face = 'cw'
         self.ctx.enable(flags=mgl.DEPTH_TEST | mgl.CULL_FACE | mgl.BLEND)
 
-        self.clock  = Clock()
+        self.clock  = Clock(self)
         self.data   = Data(self)
         self.light  = Light()
         self.camera = Camera(self, position=(2,0.5,0), yaw=180, pitch=-20)
         self.mesh   = Mesh(self)
-        self.scene  = Scene(self, self.data.scene)
+        self.scene  = Scene(self)
         self.info_display = InfoDisplay(self)
 
     def check_events(self):
@@ -72,9 +74,11 @@ class GraphicsEngine:
                 self.clock.time_animation_multiplier += 1
             elif (event.type == pg.KEYDOWN and event.key == pg.K_DOWN):
                 self.clock.time_animation_multiplier = max(0, self.clock.time_animation_multiplier - 1)
+            elif event.type == pg.KEYDOWN and event.key == pg.K_c: # C: Save config file to current folder
+                self.config.export_yaml(self.folder / 'config.yaml', include_comments=True)
 
     def render(self):
-        self.ctx.clear(color=(0.08, 0.16, 0.18))    # clear framebuffer
+        self.ctx.clear(color=self.config.get('app.background_color', [0.08, 0.16, 0.18]))    # clear framebuffer
         self.scene.render()                         # render scene
         self.info_display.render()                  # render info overlay
         pg.display.flip()                           # swap buffers
@@ -101,12 +105,14 @@ def main():
     #default_folder = Path('C:\Users\Mate\SourceCode\path_planning\Data\open_gl_test_4')
     
     parser = argparse.ArgumentParser(description='GraphicsEngine3D')
-    parser.add_argument('--folder', type=str, default=default_folder,
-                        help='Folder containing the necessary files')
-    parser.add_argument('--scene', type=eval, default=['all'],
-                        help='''List containing scene objects to be loaded ['all', 'grid', 'plans', 'terrain']''')
+    parser.add_argument('--folder', type=str, default=default_folder, help='Folder containing the necessary files')
     args = parser.parse_args()
     kwargs = vars(args)  # Convert Namespace to dict
+
+    try:
+        Path(kwargs['folder'])
+    except:
+        print(f"Invalid folder path: {kwargs['folder']}. Using GraphicsEngine3D root directory instead.")      
 
     app = GraphicsEngine(**kwargs)
     app.run()
@@ -114,4 +120,4 @@ def main():
 if __name__ == '__main__':
     main()
 
-# python GraphicsEngine3D/main.py --scene ['plans','terrain', 'obj']
+# python GraphicsEngine3D/main.py

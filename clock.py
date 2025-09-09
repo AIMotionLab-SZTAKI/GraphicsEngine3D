@@ -1,16 +1,17 @@
 import pygame as pg
 
 class Clock:
-    def __init__(self):
+    def __init__(self, app):
+        self.app = app
         self.clock = pg.time.Clock()
         self.time = 0
         self.delta_time = 0
         self.time_animation = 0
 
-        self.FPS = 30
-        self.time_animation_multiplier = 15
+        self.FPS = app.config.get('clock.FPS', 30)
+        self.time_animation_multiplier = app.config.get('clock.time_animation_multiplier', 15)
 
-        self.paused = False
+        self.paused = app.config.get('clock.paused', False)
         self.frame_index = 0
         self.frame_index_prev = -1
 
