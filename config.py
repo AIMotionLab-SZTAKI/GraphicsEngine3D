@@ -219,11 +219,13 @@ class Config():
             return False
     
     def get(self, key, default=None):
-        """Get configuration value with default fallback"""
-        try:
-            return self[key]
-        except KeyError:
-            return default
-    
+        """Get configuration value with default if key not found"""
+        if not key in self:
+            if default is not None:
+                self[key] = default
+            else:
+                return None
+        return self[key]
+
     def items(self):
         return self._config.items()
