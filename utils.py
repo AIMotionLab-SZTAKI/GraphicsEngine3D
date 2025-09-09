@@ -463,6 +463,10 @@ def get_demo_data_for_obj_plans():
     #path4[:,5] = 0
     #path4[:,6] = 0
 
+    time = np.linspace(0, path4[-1][0], path4.shape[0])
+    color = np.random.rand(path4.shape[0], 4)
+    color = np.column_stack((time, color))  # T x [t,r,g,b,a]
+
     import matplotlib.pyplot as plt
     plt.figure(figsize=(10, 6))
     for i in range(4, 7):
@@ -475,7 +479,7 @@ def get_demo_data_for_obj_plans():
                  {'id':'radar_1', 'type':'radar', 'path':np.zeros_like(path1),'color':(255,0,0,0.5),'world_dimensions':world_dim, 'dimension':[50e3,30e3,5e3]},
                  {'id':'cone_0', 'type':'cone', 'path':path2,'color':(0,255,0,0.5),'world_dimensions':world_dim, 'dimension':60e3},
                  {'id':'torus_0', 'type':'torus', 'path':path3,'color':(0,0,255,0.5),'world_dimensions':world_dim, 'dimension':40e3},
-                 {'id':'drone_0', 'type':'drone', 'path':path4,'color':(0,0,0,1.0),'world_dimensions':world_dim, 'dimension':20e3}]
+                 {'id':'drone_0', 'type':'drone', 'path':path4,'color':color,'world_dimensions':world_dim, 'dimension':20e3}]
     
     with open(folder/'obj_plans.pkl', 'wb') as f:
         pkl.dump(obj_plans, f)  
@@ -484,8 +488,8 @@ def get_demo_data_for_obj_plans():
 def main():
     folder = Path(__file__).parent
     #get_demo_heightmap_from_grid_static()
-    #get_demo_data_for_obj_plans()
-    convert_stl_to_obj(stl_path=folder/'objects/drone/quad.stl', obj_path=folder/'objects/drone/uav.obj', generate_texture_coords=True)
+    get_demo_data_for_obj_plans()
+    #convert_stl_to_obj(stl_path=folder/'objects/drone/quad.stl', obj_path=folder/'objects/drone/uav.obj', generate_texture_coords=True)
 
 if __name__ == "__main__":
     main()

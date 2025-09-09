@@ -280,16 +280,17 @@ class Spline(BaseModel):
         self.app = app
         self.vao_name = vao_name
         self.path = path
-        self.color = glm.vec4(color)
+        self.color = color
         self.on_init()
 
     def on_init(self):
         path = self.path[:, 1:4]  # Use the path as it is, without normalization
         self.app.mesh.vao.vbo.vbos[self.vao_name].vbo.write((path).flatten().astype('f4'))
+        self.update_color()
         self.update_uniform_transformation_matrices(update_proj=True)
 
     def update(self):
-        self.program['color'].write(self.color) # Color is updated sequentually, since a custom shader object would have been needed to make it static
+        self.update_color()
         self.update_uniform_transformation_matrices()
 
     def render(self):
@@ -297,6 +298,15 @@ class Spline(BaseModel):
         self.app.ctx.line_width = 4
         self.vao.render(mgl.LINE_STRIP)
         self.app.ctx.line_width = 1 # RESET
+
+    def update_color(self):
+        if isinstance(self.color, np.ndarray) and len(self.color.shape) == 2: # Color is a 2D numpy array with time-dependent colors [T x [t,r,g,b,a]
+            closest_time_idx = np.argmin(np.abs(self.color[:, 0] - self.app.clock.time_animation))
+            color = self.color[closest_time_idx, 1:5]
+        else: # If color is a single color [r,g,b,a] (list, tuple, or 1D numpy array)
+            color = self.color
+
+        self.program['color'].write(glm.vec4(color)) # Color is updated sequentually, since a custom shader object would have been needed to make it static
 
 class CoordSys(BaseModel):
     def __init__(self, app, vao_name='coordsys', tex_id='None', pos=(0, 0, 0), rot=(0, 0, 0), scale=(1, 1, 1), **kwargs):

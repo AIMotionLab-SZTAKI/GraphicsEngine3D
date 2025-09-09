@@ -92,6 +92,8 @@ class Scene:
                 else:
                     normalize_dimensions = 'unit' # rescale to unit cube
 
+                alpha = obj_plan['color'][3] if isinstance(obj_plan['color'], (list, tuple, np.ndarray)) and len(obj_plan['color'])==4 else 1.0
+
                 self.add_object(DefaultOBJ(app, vao_name=obj_plan['id'],
                                             vbo_name=obj_plan['type'],
                                             tex_id= tex_id,
@@ -104,7 +106,7 @@ class Scene:
                                             coord_sys=coord_transform,
                                             normalize_instance_dimensions=normalize_dimensions,
                                             center_instance=True,
-                                            alpha=obj_plan['color'][3]))
+                                            alpha=alpha))
         '''
         self.add_object(DefaultOBJ(app, vao_name='drone_WORLD_OPENGL', vbo_name='drone', tex_id='cat',
                                    path_obj='objects/obj/drone.obj',
