@@ -104,7 +104,7 @@ def main():
     parser.add_argument('--folder', type=str, default=default_folder,
                         help='Folder containing the necessary files')
     parser.add_argument('--scene', type=eval, default=['all'],
-                        help='''List containing scene objects to be loaded ['all', 'grid', 'plans', 'terrain', 'obj']''')
+                        help='''List containing scene objects to be loaded ['all', 'grid', 'plans', 'terrain']''')
     args = parser.parse_args()
     kwargs = vars(args)  # Convert Namespace to dict
 

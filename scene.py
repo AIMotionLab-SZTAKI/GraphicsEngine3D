@@ -28,26 +28,6 @@ class Scene:
 
         if 'grid' in self.scene:
             self.add_object(CubeStatic(app, coord_sys=coord_transform))    # total instanced cube size: 2x2x2
-
-        if 'plans' in self.scene:
-            plans = self.app.data.plans
-            for plan_idx in range(len(plans)):
-                #self.add_object(Spline(app, vao_name='spline1'+str(plan_idx), plan=plans[plan_idx], path_name='path_extracted', color=[31/255,119/255,180/255,1], rot=(90,0,180)))
-                #self.add_object(Spline(app, vao_name='spline2'+str(plan_idx), plan=plans[plan_idx], path_name='path_corrected', color=[44/255,160/255,44/255,1], rot=(90,0,180)))
-                if 'path_interp_BSpline' in plans[plan_idx] and 'path_interp_MinimumSnapTrajectory' not in plans[plan_idx]:
-                    self.add_object(DefaultOBJ(app, vao_name='drone'+str(plan_idx), vbo_name='drone', tex_id='drone',
-                                               path_obj='objects/obj/drone.obj',
-                                               path_texture='objects/drone/MQ-9_Diffuse.jpg',
-                                               path=plans[plan_idx]['path_interp_BSpline'], rotation_available=True,
-                                               rot=(0,0,90), scale=0.01, coord_sys=coord_transform))
-                    self.add_object(Spline(app, vao_name='spline3'+str(plan_idx), path=plans[plan_idx]['path_interp_BSpline'], color=[0.8,0.2,0.2,1], coord_sys=coord_transform))
-                if 'path_interp_MinimumSnapTrajectory' in plans[plan_idx]:
-                    self.add_object(Spline(app, vao_name='spline4'+str(plan_idx), path=plans[plan_idx]['path_interp_MinimumSnapTrajectory'], color=[0.8,0.2,0.2,1], rot=(90,0,180)))
-                    self.add_object(DefaultSTL(app, vao_name='droneSTL'+str(plan_idx), path_stl='objects/drone/quad.stl',
-                                               path=plans[plan_idx]['path_interp_MinimumSnapTrajectory'], rotation_available=True,
-                                               coord_sys=coord_transform, rot=(0,0,90)))
-
-        if 'grid' in self.scene:
             self.add_object(CubeDynamic(app, coord_sys=coord_transform))   # total instanced cube size: 2x2x2
 
         if 'terrain' in self.scene:
@@ -58,8 +38,8 @@ class Scene:
                                     rot=rot, scale=1,
                                     coord_sys=coord_transform))
 
-        if 'obj' in self.scene:
-            for obj_plan in self.app.data.obj_plans:
+        if 'plans' in self.scene:
+            for obj_plan in self.app.data.plans:
                 if obj_plan['type'] == 'drone':
                     tex_id = 'drone' # same texture for all drones
                     path_texture = 'objects/drone/MQ-9_Diffuse.jpg'

@@ -448,7 +448,7 @@ def get_demo_heightmap_from_grid_static():
     np.save(Path(__file__).parents[1]/'Data/Processing/demo_5drones/heightmap.npy', heightmap)
     '''
 
-def get_demo_data_for_obj_plans():
+def get_demo_data_for_plans():
     folder = Path(__file__).parent/'demo/demo_Mate'
 
     path1 = np.load(folder/'back_and_forth_trajectory_1.npy')
@@ -475,20 +475,20 @@ def get_demo_data_for_obj_plans():
     plt.tight_layout()
     plt.show()
     
-    obj_plans = [{'id':'radar_0', 'type':'radar', 'path':path1,'color':(255,0,0,0.5),'world_dimensions':world_dim, 'dimension':80e3},
-                 {'id':'radar_1', 'type':'radar', 'path':np.zeros_like(path1),'color':(255,0,0,0.5),'world_dimensions':world_dim, 'dimension':[50e3,30e3,5e3]},
-                 {'id':'cone_0', 'type':'cone', 'path':path2,'color':(0,255,0,0.5),'world_dimensions':world_dim, 'dimension':60e3},
-                 {'id':'torus_0', 'type':'torus', 'path':path3,'color':(0,0,255,0.5),'world_dimensions':world_dim, 'dimension':40e3},
-                 {'id':'drone_0', 'type':'drone', 'path':path4,'color':color,'world_dimensions':world_dim, 'dimension':20e3}]
+    plans = [{'id':'radar_0', 'type':'radar', 'path':path1,'color':(255,0,0,0.5),'world_dimensions':world_dim, 'dimension':80e3},
+             {'id':'radar_1', 'type':'radar', 'path':np.zeros_like(path1),'color':(255,0,0,0.5),'world_dimensions':world_dim, 'dimension':[50e3,30e3,5e3]},
+             {'id':'cone_0', 'type':'cone', 'path':path2,'color':(0,255,0,0.5),'world_dimensions':world_dim, 'dimension':60e3},
+             {'id':'torus_0', 'type':'torus', 'path':path3,'color':(0,0,255,0.5),'world_dimensions':world_dim, 'dimension':40e3},
+             {'id':'drone_0', 'type':'drone', 'path':path4,'color':color,'world_dimensions':world_dim, 'dimension':20e3}]
     
     with open(folder/'obj_plans.pkl', 'wb') as f:
-        pkl.dump(obj_plans, f)  
+        pkl.dump(plans, f)
 
 
 def main():
     folder = Path(__file__).parent
     #get_demo_heightmap_from_grid_static()
-    get_demo_data_for_obj_plans()
+    get_demo_data_for_plans()
     #convert_stl_to_obj(stl_path=folder/'objects/drone/quad.stl', obj_path=folder/'objects/drone/uav.obj', generate_texture_coords=True)
 
 if __name__ == "__main__":
