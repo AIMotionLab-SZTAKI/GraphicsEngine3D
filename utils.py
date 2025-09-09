@@ -192,6 +192,229 @@ def create_texture_from_rgba(ctx, rgba, size=(1, 1)):
     
     return texture
 
+def convert_stl_to_obj(stl_path, obj_path, generate_texture_coords=True):
+    """
+    Convert STL file to OBJ file with vertices (v), texture coordinates (vt), and normals (vn).
+    
+    Args:
+        stl_path: Path to input STL file
+        obj_path: Path to output OBJ file
+        generate_texture_coords: Whether to generate texture coordinates
+    """
+    try:
+        from stl import mesh
+    except ImportError:
+        raise ImportError("numpy-stl is required. Install with: pip install numpy-stl")
+    
+    # Load STL file
+    stl_mesh = mesh.Mesh.from_file(str(stl_path))
+    
+    # Extract vertices and normals
+    vertices = stl_mesh.vectors.reshape(-1, 3)  # Flatten triangles to vertices
+    normals = np.repeat(stl_mesh.normals, 3, axis=0)  # Each face normal repeated 3 times
+    
+    # Remove duplicate vertices and create index mapping
+    unique_vertices, vertex_indices = np.unique(vertices, axis=0, return_inverse=True)
+    
+    # Average normals for shared vertices
+    unique_normals = np.zeros_like(unique_vertices)
+    for i in range(len(unique_vertices)):
+        mask = vertex_indices == i
+        unique_normals[i] = np.mean(normals[mask], axis=0)
+        # Normalize the averaged normal
+        norm = np.linalg.norm(unique_normals[i])
+        if norm > 0:
+            unique_normals[i] /= norm
+    
+    # Generate texture coordinates if requested
+    if generate_texture_coords:
+        # Simple planar projection based on X and Z coordinates
+        min_x, max_x = np.min(unique_vertices[:, 0]), np.max(unique_vertices[:, 0])
+        min_z, max_z = np.min(unique_vertices[:, 2]), np.max(unique_vertices[:, 2])
+        
+        # Avoid division by zero
+        x_range = max_x - min_x if max_x != min_x else 1.0
+        z_range = max_z - min_z if max_z != min_z else 1.0
+        
+        texture_coords = np.column_stack([
+            (unique_vertices[:, 0] - min_x) / x_range,  # U coordinate
+            (unique_vertices[:, 2] - min_z) / z_range   # V coordinate
+        ])
+    else:
+        # Default texture coordinates (0, 0) for all vertices
+        texture_coords = np.zeros((len(unique_vertices), 2))
+    
+    # Create faces using the vertex indices
+    faces = vertex_indices.reshape(-1, 3)
+    
+    # Write OBJ file
+    obj_path = Path(obj_path)
+    obj_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    with open(obj_path, 'w') as f:
+        f.write(f"# OBJ file converted from {stl_path}\n")
+        f.write(f"# Vertices: {len(unique_vertices)}\n")
+        f.write(f"# Faces: {len(faces)}\n\n")
+        
+        # Write vertices
+        for vertex in unique_vertices:
+            f.write(f"v {vertex[0]:.6f} {vertex[1]:.6f} {vertex[2]:.6f}\n")
+        
+        f.write("\n")
+        
+        # Write texture coordinates
+        for texcoord in texture_coords:
+            f.write(f"vt {texcoord[0]:.6f} {texcoord[1]:.6f}\n")
+        
+        f.write("\n")
+        
+        # Write normals
+        for normal in unique_normals:
+            f.write(f"vn {normal[0]:.6f} {normal[1]:.6f} {normal[2]:.6f}\n")
+        
+        f.write("\n")
+        
+        # Write faces (OBJ is 1-indexed)
+        for face in faces:
+            # Format: f v1/vt1/vn1 v2/vt2/vn2 v3/vt3/vn3
+            f.write(f"f {face[0]+1}/{face[0]+1}/{face[0]+1} "
+                   f"{face[1]+1}/{face[1]+1}/{face[1]+1} "
+                   f"{face[2]+1}/{face[2]+1}/{face[2]+1}\n")
+    
+    print(f"Successfully converted {stl_path} to {obj_path}")
+    print(f"  Vertices: {len(unique_vertices)}")
+    print(f"  Faces: {len(faces)}")
+    print(f"  Normals: {len(unique_normals)}")
+    print(f"  Texture coordinates: {len(texture_coords)}")
+
+
+def convert_stl_to_obj_advanced(stl_path, obj_path, texture_mapping='planar'):
+    """
+    Advanced STL to OBJ converter with different texture mapping options.
+    
+    Args:
+        stl_path: Path to input STL file
+        obj_path: Path to output OBJ file
+        texture_mapping: 'planar', 'cylindrical', 'spherical', or 'cubic'
+        normalize: Whether to normalize the model
+    """
+    try:
+        from stl import mesh
+    except ImportError:
+        raise ImportError("numpy-stl is required. Install with: pip install numpy-stl")
+    
+    # Load and process STL (same as above)
+    stl_mesh = mesh.Mesh.from_file(str(stl_path))
+    vertices = stl_mesh.vectors.reshape(-1, 3)
+    normals = np.repeat(stl_mesh.normals, 3, axis=0)
+    
+    unique_vertices, vertex_indices = np.unique(vertices, axis=0, return_inverse=True)
+    
+    # Average normals for shared vertices
+    unique_normals = np.zeros_like(unique_vertices)
+    for i in range(len(unique_vertices)):
+        mask = vertex_indices == i
+        unique_normals[i] = np.mean(normals[mask], axis=0)
+        norm = np.linalg.norm(unique_normals[i])
+        if norm > 0:
+            unique_normals[i] /= norm
+    
+    # Generate texture coordinates based on mapping type
+    if texture_mapping == 'planar':
+        # XZ plane projection
+        min_x, max_x = np.min(unique_vertices[:, 0]), np.max(unique_vertices[:, 0])
+        min_z, max_z = np.min(unique_vertices[:, 2]), np.max(unique_vertices[:, 2])
+        x_range = max_x - min_x if max_x != min_x else 1.0
+        z_range = max_z - min_z if max_z != min_z else 1.0
+        
+        texture_coords = np.column_stack([
+            (unique_vertices[:, 0] - min_x) / x_range,
+            (unique_vertices[:, 2] - min_z) / z_range
+        ])
+        
+    elif texture_mapping == 'cylindrical':
+        # Cylindrical mapping around Y-axis
+        x, y, z = unique_vertices[:, 0], unique_vertices[:, 1], unique_vertices[:, 2]
+        u = (np.arctan2(z, x) + np.pi) / (2 * np.pi)  # [0, 1]
+        
+        min_y, max_y = np.min(y), np.max(y)
+        y_range = max_y - min_y if max_y != min_y else 1.0
+        v = (y - min_y) / y_range  # [0, 1]
+        
+        texture_coords = np.column_stack([u, v])
+        
+    elif texture_mapping == 'spherical':
+        # Spherical mapping
+        x, y, z = unique_vertices[:, 0], unique_vertices[:, 1], unique_vertices[:, 2]
+        r = np.sqrt(x**2 + y**2 + z**2)
+        r = np.where(r == 0, 1e-8, r)  # Avoid division by zero
+        
+        u = (np.arctan2(z, x) + np.pi) / (2 * np.pi)  # [0, 1]
+        v = (np.arcsin(np.clip(y / r, -1, 1)) + np.pi/2) / np.pi  # [0, 1]
+        
+        texture_coords = np.column_stack([u, v])
+        
+    elif texture_mapping == 'cubic':
+        # Cubic mapping (based on dominant normal direction)
+        texture_coords = np.zeros((len(unique_vertices), 2))
+        
+        for i, (vertex, normal) in enumerate(zip(unique_vertices, unique_normals)):
+            # Find dominant axis
+            abs_normal = np.abs(normal)
+            dominant_axis = np.argmax(abs_normal)
+            
+            if dominant_axis == 0:  # X-dominant
+                texture_coords[i] = [(vertex[1] + 1) / 2, (vertex[2] + 1) / 2]
+            elif dominant_axis == 1:  # Y-dominant
+                texture_coords[i] = [(vertex[0] + 1) / 2, (vertex[2] + 1) / 2]
+            else:  # Z-dominant
+                texture_coords[i] = [(vertex[0] + 1) / 2, (vertex[1] + 1) / 2]
+        
+        # Normalize to [0, 1]
+        texture_coords = np.clip(texture_coords, 0, 1)
+    
+    else:
+        # Default: simple planar
+        texture_coords = np.zeros((len(unique_vertices), 2))
+    
+    # Write OBJ file (same as above)
+    faces = vertex_indices.reshape(-1, 3)
+    
+    obj_path = Path(obj_path)
+    obj_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    with open(obj_path, 'w') as f:
+        f.write(f"# OBJ file converted from {stl_path}\n")
+        f.write(f"# Texture mapping: {texture_mapping}\n")
+        f.write(f"# Vertices: {len(unique_vertices)}, Faces: {len(faces)}\n\n")
+        
+        # Write vertices
+        for vertex in unique_vertices:
+            f.write(f"v {vertex[0]:.6f} {vertex[1]:.6f} {vertex[2]:.6f}\n")
+        
+        f.write("\n")
+        
+        # Write texture coordinates
+        for texcoord in texture_coords:
+            f.write(f"vt {texcoord[0]:.6f} {texcoord[1]:.6f}\n")
+        
+        f.write("\n")
+        
+        # Write normals
+        for normal in unique_normals:
+            f.write(f"vn {normal[0]:.6f} {normal[1]:.6f} {normal[2]:.6f}\n")
+        
+        f.write("\n")
+        
+        # Write faces
+        for face in faces:
+            f.write(f"f {face[0]+1}/{face[0]+1}/{face[0]+1} "
+                   f"{face[1]+1}/{face[1]+1}/{face[1]+1} "
+                   f"{face[2]+1}/{face[2]+1}/{face[2]+1}\n")
+    
+    print(f"Successfully converted {stl_path} to {obj_path} with {texture_mapping} mapping")
+
+
 def get_demo_heightmap_from_grid_static():
     grid_static_path = Path(__file__).parents[1] / 'Data/Processing/demo_5drones/grid_static.npz'
     grid_static = np.load(grid_static_path)['grid_static']  # shape: (x, y, z)
@@ -259,9 +482,10 @@ def get_demo_data_for_obj_plans():
 
 
 def main():
-    #center_obj_file(Path(__file__).parent/'objects/obj/drone.obj') # DELETE CACHE BEFORE RUNNING
+    folder = Path(__file__).parent
     #get_demo_heightmap_from_grid_static()
-    get_demo_data_for_obj_plans()
+    #get_demo_data_for_obj_plans()
+    convert_stl_to_obj(stl_path=folder/'objects/drone/quad.stl', obj_path=folder/'objects/drone/uav.obj', generate_texture_coords=True)
 
 if __name__ == "__main__":
     main()

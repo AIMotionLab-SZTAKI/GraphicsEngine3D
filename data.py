@@ -6,6 +6,7 @@ import numpy as np
 import pickle
 import hashlib
 import json
+import traceback
 
 class Data:
     def __init__(self, app):
@@ -74,17 +75,11 @@ class Data:
             raise e
         
         try:
-            pass
             for plan in self.plans:
-                for key in plan: 
-                    pass
+                for key in plan:
                     if key.startswith('path_') and not key.endswith('tcku'):
-                        # Normalize time to seconds
-                        scale = 1 / np.max(plan['grid_shape'])
-                        path = plan[key]
-                        # Normalize the position, by the largest dimension of the world
-                        path[:, 1:4] = 2* scale * (path[:, 1:4] - (np.array(plan['grid_shape'])-1)/2)
-                        path[:, 3] -= 0.5 * scale  # Adjust Z position to center the object
+                        plan[key][:, 3] -= 0.5  # Adjust Z position to center the object
+                        plan[key][:, 1:4] = 2 * (plan[key][:, 1:4] - (np.array(plan['grid_shape'])-1)/2) / np.max(plan['grid_shape'])
         except Exception as e:
             print(f"Error processing {key} in plan {plan}: {e}")
 
@@ -247,7 +242,8 @@ class Data:
                 print(f'Loaded {len(self.obj_plans)} object plans.')
         except Exception as e:
             self.obj_plans = None
-            print(f'obj_plans.pkl not found in {self.folder}. No objects will be loaded.')
+            print(f'obj_plans.pkl not found in {str(self.folder)}. No objects will be loaded.')
+            traceback.print_exc()
             raise e
 
         try:
@@ -260,14 +256,17 @@ class Data:
         # Iterate through the object plans and convert the paths to the correct format
         for obj_plan in self.obj_plans:
 
-            print(f"Object plan {obj_plan['id']} loaded, type: {obj_plan['type']}, path shape: {obj_plan['path'].shape} start: {obj_plan['path'][0,1:4]}, dimension: {obj_plan['dimension']}, world dimensions: {obj_plan['world_dimensions']}")
+            print(f"Object plan {obj_plan['id']} loaded, type: {obj_plan['type']}, path shape: {obj_plan['path'].shape} start: {obj_plan['path'][0,1:4]}, " + \
+                  f"dimension: {obj_plan['dimension']}, world dimensions: {obj_plan['world_dimensions']}, keys: {list(obj_plan.keys())}")
+
+            world_dim = obj_plan.get('world_dimensions', self.world_dimensions)
 
             if np.issubdtype(obj_plan['path'].dtype, np.floating):
                 print('Path is of type float (SI units), centering/scaling the path')
-                obj_plan['path'][:,1:4] = obj_plan['path'][:,1:4] - self.world_dimensions/2 # center
-                obj_plan['path'][:,1:4] = 2 * obj_plan['path'][:,1:4] / np.max(self.world_dimensions).astype(np.float32)
+                obj_plan['path'][:,1:4] = obj_plan['path'][:,1:4] - world_dim/2 # center
+                obj_plan['path'][:,1:4] = 2 * obj_plan['path'][:,1:4] / np.max(world_dim).astype(np.float32)
 
             if np.issubdtype(obj_plan['path'].dtype, np.integer):
                 print('Path is of type int (Grid units), converting to SI units and centering/scaling the path')
                 obj_plan['path'] = obj_plan['path'].astype(np.float32)
-                obj_plan['path'][:,1:4] = obj_plan['path'][:,1:4] / np.max(self.world_dimensions).astype(np.float32)
+                obj_plan['path'][:,1:4] = 2 * (obj_plan['path'][:,1:4] - np.array(world_dim/2)) / np.max(world_dim)

@@ -63,9 +63,25 @@ class Scene:
                 if obj_plan['type'] == 'drone':
                     tex_id = 'drone' # same texture for all drones
                     path_texture = 'objects/drone/MQ-9_Diffuse.jpg'
-
-                    self.add_object(Spline(app, vao_name='spline_'+obj_plan['id'], path=obj_plan['path'], color=[1,0,0,1],
+                    color = obj_plan['color'] if 'color' in obj_plan else [1,0,0,1]
+                    
+                    self.add_object(Spline(app, vao_name='drone_spline_'+obj_plan['id'], path=obj_plan['path'], color=color,
                                            coord_sys=coord_transform))
+                elif obj_plan['type'] == 'uav':
+                    tex_id = 'uav' # same texture for all uavs
+                    color = obj_plan['color'] if 'color' in obj_plan else [1,0,0,1]
+                    self.app.mesh.texture.textures[tex_id] = create_texture_from_rgba(self.app.ctx, rgba=color)
+                    path_texture = None
+                    
+                    self.add_object(Spline(app, vao_name='uav_spline_'+obj_plan['id'], path=obj_plan['path'], color=color,
+                                           coord_sys=coord_transform))
+
+                elif obj_plan['type'] == 'spline':
+                    color = obj_plan['color'] if 'color' in obj_plan else [0,0,1,1]
+                    self.add_object(Spline(app, vao_name='spline_'+obj_plan['id'], path=obj_plan['path'], color=color,
+                                           coord_sys=coord_transform))
+                    continue # Only add the Spline object
+
                 else:
                     self.app.mesh.texture.textures[obj_plan['id']] = create_texture_from_rgba(self.app.ctx, rgba=obj_plan['color'])
                     tex_id = obj_plan['id'] # separete texture for each object

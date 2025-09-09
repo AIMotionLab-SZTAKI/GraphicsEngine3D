@@ -1,6 +1,7 @@
 # FOLDER
 .vscode
 .history
+screenshots
 
 # CACHE
 __pycache__

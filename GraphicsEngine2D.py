@@ -11,7 +11,7 @@ from GraphicsEngine3D.utils import getColorMap
 from GraphicsEngine3D.clock import Clock
 
 class GraphicsEngine2D():
-    def __init__(self, grid_seq:np.ndarray=None, extracted_paths:dict=None, win_size_max:int=2000):
+    def __init__(self, grid_seq:np.ndarray=None, extracted_paths:dict=None, win_size_max:int=1000):
         pygame.init()
         # SCREEN
         self.win_size_max = win_size_max # Maximum size of the window
@@ -65,7 +65,7 @@ class GraphicsEngine2D():
             self.pix = min(self.pix_x, self.pix_y)  # For text size, use smaller value
 
             # Initialize font
-            self.font = pygame.freetype.SysFont(None, int(self.pix*6))
+            self.font = pygame.freetype.SysFont(None, int(self.pix*3))
             self.paths = extracted_paths if extracted_paths is not None else {} # dict of agent_id : np.ndarray (shape: [t,x,y])
             self.clock.time_animation = 0
 
