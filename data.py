@@ -249,7 +249,7 @@ class Data:
             if obj_plan['type'] in ('drone','uav'):
                 if 'path_interp_BSpline' in obj_plan and 'path_interp_MinimumSnapTrajectory' not in obj_plan:
                     obj_plan['path'] = obj_plan['path_interp_BSpline']
-                    self.plans.append({'id':f'{obj_plan['id']}_spline_BSpline', 'type':'spline', 'path':obj_plan['path_interp_BSpline'],'color':[0.8,0.2,0.2,1],'world_dimensions':obj_plan['world_dimensions']})
+                    self.plans.append({'id':f"{obj_plan['id']}_spline_BSpline", 'type':'spline', 'path':obj_plan['path_interp_BSpline'],'color':[0.8,0.2,0.2,1],'world_dimensions':obj_plan['world_dimensions']})
                 elif 'path_interp_MinimumSnapTrajectory' in obj_plan:
                     obj_plan['path'] = obj_plan['path_interp_MinimumSnapTrajectory']
-                    self.plans.append({'id':f'{obj_plan['id']}_spline_MinSnap', 'type':'spline', 'path':obj_plan['path_interp_MinimumSnapTrajectory'],'color':[0.8,0.2,0.2,1],'world_dimensions':obj_plan['world_dimensions']})
+                    self.plans.append({'id':f"{obj_plan['id']}_spline_MinSnap", 'type':'spline', 'path':obj_plan['path_interp_MinimumSnapTrajectory'],'color':[0.8,0.2,0.2,1],'world_dimensions':obj_plan['world_dimensions']})
