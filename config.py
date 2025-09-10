@@ -2,6 +2,20 @@ import yaml
 import copy
 from pathlib import Path
 
+# Custom YAML representers and constructors for tuples
+def tuple_representer(dumper, data):
+    """Custom YAML representer for tuples"""
+    return dumper.represent_sequence('tag:yaml.org,2002:python/tuple', data)
+
+def tuple_constructor(loader, node):
+    """Custom YAML constructor for tuples"""
+    return tuple(loader.construct_sequence(node))
+
+# Register custom tuple handlers
+yaml.add_representer(tuple, tuple_representer)
+yaml.SafeLoader.add_constructor('tag:yaml.org,2002:python/tuple', tuple_constructor)
+yaml.SafeDumper.add_representer(tuple, tuple_representer)
+
 class Config():
     """
     Configuration class with YAML support, nested dict access, and comment preservation.
@@ -70,7 +84,7 @@ class Config():
         if yaml_path.exists():
             try:
                 with open(yaml_path, 'r') as f:
-                    yaml_config = yaml.safe_load(f) or {}
+                    yaml_config = yaml.load(f, Loader=yaml.SafeLoader) or {}
                 
                 # Merge with defaults (YAML takes precedence)
                 self._config = self._deep_merge(self._config, yaml_config)
@@ -138,7 +152,7 @@ class Config():
             self._export_yaml_with_comments(filepath)
         else:
             with open(filepath, 'w') as f:
-                yaml.dump(self._config, f, default_flow_style=False, indent=2, sort_keys=False)
+                yaml.dump(self._config, f, Dumper=yaml.SafeDumper, default_flow_style=False, indent=2, sort_keys=False)
 
         # Restore original 'scene' value
         if 'scene' in self._config:
@@ -167,6 +181,9 @@ class Config():
                     # Handle different value types properly
                     if isinstance(value, str):
                         yaml_value = f"'{value}'" if ' ' in value or value == '' else value
+                    elif isinstance(value, tuple):
+                        # Format tuple with proper YAML tag
+                        yaml_value = f"!!python/tuple {list(value)}"
                     elif isinstance(value, list):
                         if len(value) == 0:
                             yaml_value = "[]"
