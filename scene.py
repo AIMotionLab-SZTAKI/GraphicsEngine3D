@@ -80,7 +80,7 @@ class Scene:
                                             path_obj=f'objects/obj/{obj_plan["type"]}.obj',
                                             path_texture=path_texture,
                                             path=obj_plan['path'],
-                                            rotation_available=True,
+                                            rotation_available=(obj_plan['path'].shape[1]>=7),
                                             scale=2*np.array(obj_plan['dimension'])/np.max(obj_plan['world_dimensions']),
                                             instance_rot=(0,0,0),
                                             coord_sys=coord_transform,

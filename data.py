@@ -1,40 +1,105 @@
 from model import *
 from utils import *
 
+import os
 from pathlib import Path
 import numpy as np
 import pickle
 import hashlib
 import json
 import traceback
+import re
 
 class Data:
     def __init__(self, app):
         self.app = app
         self.folder = self.app.config['folder']
 
+        self.folder_files = os.listdir(self.folder)
+
         # grid_seq: np.ndarray with indices: time,x,y,z
         # plans: list of dictionaries for every object to plot
         # heightmap: np.ndarray with shape (x,y) containing the height values
 
         # In order to load objects to the scene add an item to the dict with the corresponding function
-        load_func_dict = {
-            'grid': self.load_grid,
-            'plans': self.load_plans,
-            'terrain': self.load_terrain
+        self.load_dict = {
+            'grid': {'func': self.load_grid},
+            'plans': {'func': self.load_plans},
+            'terrain': {'func': self.load_terrain}
         }
 
         if 'all' in app.config['scene']:
-            app.config['scene'] = list(load_func_dict.keys())
-        for key in load_func_dict:
+            app.config['scene'] = list(self.load_dict.keys())
+        for key in self.load_dict:
             if key in app.config['scene']:
                 try:
-                    load_func_dict[key]()
+                    self.load_dict[key]['func']()
                     pass
                 except Exception:
                     if key in app.config['scene']: app.config['scene'].remove(key)
 
         print(f'Successfully Loaded scene objects: {app.config["scene"]}')
+
+    def load_plans(self):
+        # plans.pkl: list of dictionaries with keys: 'path_extracted', 'path_corrected', 'path_interp_BSpline', 'path_interp_MinimumSnapTrajectory', etc.
+        # all path_* keys contain a numpy array with shape (time, x, y, z, ?(rotx, roty, rotz)?, ....) (rot not mandatory, but should be located at indices 4,5,6)
+
+        plans_filenames = [fname for fname in self.folder_files if re.match(r'.*plans.*\.pkl', fname)]
+        if len(plans_filenames) == 0:
+            print(f"No plans file found in {self.folder}. No objects will be loaded.")
+            self.plans = None
+        else:
+            self.plans = []
+            for filename in plans_filenames:
+                try:
+                    with open(self.folder/filename, 'rb') as f:
+                        plans = pickle.load(f)
+                        if isinstance(plans, list):
+                            self.plans.extend(plans)
+                            print(f'Loaded {len(plans)} plans from {filename}')
+                except Exception as e:
+                    traceback.print_exc()
+                    raise e
+            if len(self.plans) == 0:
+                print(f"No valid plans found in {self.folder}. No objects will be loaded.")
+                self.plans = None
+
+        try:
+            self.world_dimensions = self.plans[0]['world_dimensions']
+        except Exception as e:
+            self.world_dimensions = np.array([1, 1, 1], dtype=np.float32)
+            print(f'No world dimensions found in obj_plans.pkl. Using default dimensions: {self.world_dimensions}')
+
+        # The DefaultOBJ class does not handle the shrinking of the object, so we need to load the objects with the correct scale.
+        # Iterate through the object plans and convert the paths to the correct format
+        for obj_plan in self.plans:
+
+            print(f"Object plan {obj_plan['id']} loaded, type: {obj_plan['type']}, path shape: {obj_plan['path'].shape}, keys: {list(obj_plan.keys())}")
+            world_dim = obj_plan.get('world_dimensions', self.world_dimensions)
+
+            for key in obj_plan:
+                if key.startswith('path') and not key.endswith('tcku'):
+
+                    if np.issubdtype(obj_plan[key].dtype, np.floating):
+                        print('Path is of type float (SI units), centering/scaling the path')
+                        obj_plan[key][:,1:4] = obj_plan[key][:,1:4] - world_dim/2 # center
+                        obj_plan[key][:,1:4] = 2 * obj_plan[key][:,1:4] / np.max(world_dim).astype(np.float32)
+
+                    if np.issubdtype(obj_plan[key].dtype, np.integer):
+                        print('Path is of type int (Grid units), converting to SI units and centering/scaling the path')
+                        obj_plan[key] = obj_plan[key].astype(np.float32)
+                        obj_plan[key][:,1:4] = 2 * (obj_plan[key][:,1:4] - np.array(world_dim/2)) / np.max(world_dim)
+
+            # THIS PART IS FOR COMPATIBILITY WITH OLDER VERSIONS, IT ADDS THE NECESSARY SPLINE PATHS TO BE PLOTTED
+            # Possible keys: 'path_extracted'[31/255,119/255,180/255,1], 'path_corrected'[44/255,160/255,44/255,1], 'path_interp_BSpline', 'path_interp_MinimumSnapTrajectory'
+            if obj_plan['type'] in ('drone','uav'):
+                if 'path_interp_BSpline' in obj_plan and 'path_interp_MinimumSnapTrajectory' not in obj_plan:
+                    obj_plan['path'] = obj_plan['path_interp_BSpline']
+                    self.plans.append({'id':f"{obj_plan['id']}_spline_BSpline", 'type':'spline', 'path':obj_plan['path_interp_BSpline'],'color':[0.8,0.2,0.2,1],'world_dimensions':obj_plan['world_dimensions']})
+                elif 'path_interp_MinimumSnapTrajectory' in obj_plan:
+                    obj_plan['path'] = obj_plan['path_interp_MinimumSnapTrajectory']
+                    self.plans.append({'id':f"{obj_plan['id']}_spline_MinSnap", 'type':'spline', 'path':obj_plan['path_interp_MinimumSnapTrajectory'],'color':[0.8,0.2,0.2,1],'world_dimensions':obj_plan['world_dimensions']})
+
 
     def load_grid(self):
         try:
@@ -202,54 +267,3 @@ class Data:
         except Exception as e:
             print(f'Error loading terrain: {e}')
             raise e
-
-    def load_plans(self):
-        # obj_plans.pkl: list of dictionaries with keys: 'path_extracted', 'path_corrected', 'path_interp_BSpline', 'path_interp_MinimumSnapTrajectory', etc.
-        # all path_* keys contain a numpy array with shape (time, x, y, z, ?(rotx, roty, rotz)?, ....) (rot not mandatory, but should be located at indices 4,5,6)
-        try:
-            with open(self.folder/'obj_plans.pkl', 'rb') as f:
-                self.plans = pickle.load(f)
-                print(f'Loaded {len(self.plans)} object plans.')
-        except Exception as e:
-            self.plans = None
-            print(f'obj_plans.pkl not found in {str(self.folder)}. No objects will be loaded.')
-            traceback.print_exc()
-            raise e
-
-        try:
-            self.world_dimensions = self.plans[0]['world_dimensions']
-        except Exception as e:
-            self.world_dimensions = np.array([1, 1, 1], dtype=np.float32)
-            print(f'No world dimensions found in obj_plans.pkl. Using default dimensions: {self.world_dimensions}')
-
-        # The DefaultOBJ class does not handle the shrinking of the object, so we need to load the objects with the correct scale.
-        # Iterate through the object plans and convert the paths to the correct format
-        for obj_plan in self.plans:
-
-            print(f"Object plan {obj_plan['id']} loaded, type: {obj_plan['type']}, path shape: {obj_plan['path'].shape} start: {obj_plan['path'][0,1:4]}, " + \
-                  f"dimension: {obj_plan['dimension']}, world dimensions: {obj_plan['world_dimensions']}, keys: {list(obj_plan.keys())}")
-
-            world_dim = obj_plan.get('world_dimensions', self.world_dimensions)
-
-            for key in obj_plan:
-                if key.startswith('path') and not key.endswith('tcku'):
-
-                    if np.issubdtype(obj_plan[key].dtype, np.floating):
-                        print('Path is of type float (SI units), centering/scaling the path')
-                        obj_plan[key][:,1:4] = obj_plan[key][:,1:4] - world_dim/2 # center
-                        obj_plan[key][:,1:4] = 2 * obj_plan[key][:,1:4] / np.max(world_dim).astype(np.float32)
-
-                    if np.issubdtype(obj_plan[key].dtype, np.integer):
-                        print('Path is of type int (Grid units), converting to SI units and centering/scaling the path')
-                        obj_plan[key] = obj_plan[key].astype(np.float32)
-                        obj_plan[key][:,1:4] = 2 * (obj_plan[key][:,1:4] - np.array(world_dim/2)) / np.max(world_dim)
-
-            # THIS PART IS FOR COMPATIBILITY WITH OLDER VERSIONS, IT ADDS THE NECESSARY SPLINE PATHS TO BE PLOTTED 
-            # Possible keys: 'path_extracted'[31/255,119/255,180/255,1], 'path_corrected'[44/255,160/255,44/255,1], 'path_interp_BSpline', 'path_interp_MinimumSnapTrajectory'
-            if obj_plan['type'] in ('drone','uav'):
-                if 'path_interp_BSpline' in obj_plan and 'path_interp_MinimumSnapTrajectory' not in obj_plan:
-                    obj_plan['path'] = obj_plan['path_interp_BSpline']
-                    self.plans.append({'id':f"{obj_plan['id']}_spline_BSpline", 'type':'spline', 'path':obj_plan['path_interp_BSpline'],'color':[0.8,0.2,0.2,1],'world_dimensions':obj_plan['world_dimensions']})
-                elif 'path_interp_MinimumSnapTrajectory' in obj_plan:
-                    obj_plan['path'] = obj_plan['path_interp_MinimumSnapTrajectory']
-                    self.plans.append({'id':f"{obj_plan['id']}_spline_MinSnap", 'type':'spline', 'path':obj_plan['path_interp_MinimumSnapTrajectory'],'color':[0.8,0.2,0.2,1],'world_dimensions':obj_plan['world_dimensions']})
