@@ -73,7 +73,7 @@ class GraphicsEngine:
             elif (event.type == pg.KEYDOWN and event.key == pg.K_UP):
                 self.clock.time_animation_multiplier += 1
             elif (event.type == pg.KEYDOWN and event.key == pg.K_DOWN):
-                self.clock.time_animation_multiplier = max(0, self.clock.time_animation_multiplier - 1)
+                self.clock.time_animation_multiplier = max(1, self.clock.time_animation_multiplier - 1)
             elif event.type == pg.KEYDOWN and event.key == pg.K_c: # C: Save config file to current folder
                 self.config.export_yaml(self.folder / 'config.yaml', include_comments=True)
 
