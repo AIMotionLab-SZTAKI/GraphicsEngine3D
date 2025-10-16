@@ -112,8 +112,7 @@ class DefaultOBJ(BaseModel):
         '''
 
         # Add vbo if it does not exist
-        if not vbo_name in app.mesh.vao.vbo.vbos: # Only create the VBO once
-            app.mesh.vao.vbo.vbos[vbo_name] = DefaultOBJ_VBO(app.ctx, file=path_obj)
+        app.mesh.vao.vbo.add(vbo_name, DefaultOBJ_VBO(app.ctx, file=path_obj))
 
         # Add texture if tex_id != 'test' and it does not exist already
         if tex_id != 'test' and tex_id not in app.mesh.texture.textures:
@@ -190,11 +189,10 @@ class DefaultOBJ(BaseModel):
 class CubeStatic(BaseModel):
     def __init__(self, app, vao_name='cubeStatic', tex_id='cube', pos=(0, 0, 0), rot=(0, 0, 0), scale=(1, 1, 1), **kwargs):
 
-        if not 'cube' in app.mesh.vao.vbo.vbos:  # The same VBO is used for all cubes, so it is created only once
-            app.mesh.vao.vbo.vbos['cube'] = CubeVBO(app.ctx)
-        if not 'cubeStaticInstance' in app.mesh.vao.vbo.vbos:
-            app.mesh.vao.vbo.vbos['cubeStaticInstance'] = \
-                CubeStaticInstanceVBO(app.ctx, reserve = app.data.grid_static_instancelist.shape[0] * 16) # 4f ~16 byte # not updated at all
+        # The same VBO is used for all cubes, so it is created only once
+        app.mesh.vao.vbo.add('cube', CubeVBO(app.ctx))
+        app.mesh.vao.vbo.add('cubeStaticInstance',                  # 4f ~16 byte # not updated at all
+            CubeStaticInstanceVBO(app.ctx, reserve = app.data.grid_static_instancelist.shape[0] * 16))  
 
         app.mesh.vao.vaos['cubeStatic'] = app.mesh.vao.get_vao(
             program = app.mesh.vao.program.programs['cubeStatic'],
@@ -223,11 +221,9 @@ class CubeStatic(BaseModel):
 class CubeDynamic(BaseModel):
     def __init__(self, app, vao_name='cubeDynamic', tex_id='cube', pos=(0, 0, 0), rot=(0, 0, 0), scale=(1, 1, 1), **kwargs):
 
-        if not 'cube' in app.mesh.vao.vbo.vbos:  # The same VBO is used for all cubes, so it is created only once
-            app.mesh.vao.vbo.vbos['cube'] = CubeVBO(app.ctx)
-        if not 'cubeDynamicInstance' in app.mesh.vao.vbo.vbos:
-            app.mesh.vao.vbo.vbos['cubeDynamicInstance'] = \
-                CubeDynamicInstanceVBO(app.ctx, reserve = app.data.grid_seq_dynamic_instancelist.shape[1] * 16) # 4f ~16 byte # updated with indices
+        app.mesh.vao.vbo.add('cube', CubeVBO(app.ctx))
+        app.mesh.vao.vbo.add('cubeDynamicInstance',                     # 4f ~16 byte # updated with indices
+            CubeDynamicInstanceVBO(app.ctx, reserve = app.data.grid_seq_dynamic_instancelist.shape[1] * 16)) 
 
         app.mesh.vao.vaos['cubeDynamic'] = app.mesh.vao.get_vao(
             program = app.mesh.vao.program.programs['cubeDynamic'],
@@ -271,7 +267,7 @@ class Spline(BaseModel):
                  path:np.ndarray=np.zeros(4), color=[1,1,1,1], **kwargs):
         
         # Init VBO and VAO before calling super().init !!! (vbo_name = vao_name)
-        app.mesh.vao.vbo.vbos[vao_name] = SplineVBO(app.ctx, reserve = path.shape[0]*12)
+        app.mesh.vao.vbo.add(vao_name, SplineVBO(app.ctx, reserve = path.shape[0]*12))
         app.mesh.vao.vaos[vao_name] = app.mesh.vao.get_vao(program = app.mesh.vao.program.programs['spline'], 
                                                            vbo = [app.mesh.vao.vbo.vbos[vao_name]])
         
@@ -315,7 +311,7 @@ class CoordSys(BaseModel):
                             0,0,0,0,0,1,1,  0,0,1,0,0,1,1])
         
         # Init VBO and VAO before calling super().init !!! (vbo_name = vao_name)
-        app.mesh.vao.vbo.vbos[vao_name] = CoordSysVBO(app.ctx, reserve = self.data.shape[0]*28)
+        app.mesh.vao.vbo.add(vao_name, CoordSysVBO(app.ctx, reserve = self.data.shape[0]*28))
         app.mesh.vao.vaos[vao_name] = app.mesh.vao.get_vao(program = app.mesh.vao.program.programs['coordsys'],
                                                            vbo = [app.mesh.vao.vbo.vbos[vao_name]])
         super().__init__(app, vao_name, tex_id, pos, rot, scale, **kwargs)
@@ -343,9 +339,8 @@ class DefaultSTL(BaseModel):
                  path:np.ndarray=None, rotation_available:bool=False,
                  pos=(0, 0, 0), rot=(0, 180, 0), scale=(1, 1, 1), **kwargs):
         
-        # Add vbo if it does not exist
-        if not vbo_name in app.mesh.vao.vbo.vbos: # The same VBO is used for all drones, so it is created only once
-            app.mesh.vao.vbo.vbos[vbo_name] = DefaultSTL_VBO(app.ctx, file=path_stl)
+        # The same VBO is used for all STL objects, so it is created only once
+        app.mesh.vao.vbo.add(vbo_name, DefaultSTL_VBO(app.ctx, file=path_stl))
 
         # Init PROGRAM and VAO before calling super().init !!! (vao_name = program_name)
         app.mesh.vao.program.programs[vao_name] = app.mesh.vao.program.get_program('STL_default')

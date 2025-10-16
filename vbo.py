@@ -7,6 +7,10 @@ class VBO:
     def __init__(self, ctx):
         self.vbos = {}
 
+    def add(self, vbo_name: str, vbo):
+        if vbo_name not in self.vbos:
+            self.vbos[vbo_name] = vbo
+
     def destroy(self):
         [vbo.destroy() for vbo in self.vbos.values()]
 

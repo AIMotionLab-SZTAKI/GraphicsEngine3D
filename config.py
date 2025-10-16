@@ -43,7 +43,12 @@ class Config():
                 'window_size': [1920, 1080],
                 'background_color': [0.08, 0.16, 0.18]
             },
-            'scene': ['all'],
+            'scene': {
+                'objects': ['all'],
+                'coordsys_WORLD': True,
+                'coordsys_MAP_ORIGIN': True,
+                'coordsys_WORLD_OPENGL': False,
+            },
             'clock': {
                 'FPS': 30,
                 'time_animation_multiplier': 15,
@@ -70,7 +75,11 @@ class Config():
             'app.window_size': 'Window size [width, height]',
             'app.background_color': 'Background color [r, g, b] (0-1 range)',
 
-            'scene': 'List of scene objects to be loaded ["all", "grid", "plans", "terrain"]',
+            'scene': 'Scene settings',
+            'scene.objects': 'List of scene objects to be loaded ["all", "grid", "plans", "terrain"]',
+            'scene.coordsys_WORLD': 'Show world coordinate system (true/false)',
+            'scene.coordsys_MAP_ORIGIN': 'Show map origin coordinate system at (-1,-1,0) (true/false)',
+            'scene.coordsys_WORLD_OPENGL': 'Show OpenGL world coordinate system (true/false)',
 
             'clock': 'Clock and timing settings',
             'clock.FPS': 'Target frames per second',
@@ -142,11 +151,11 @@ class Config():
         """Export current configuration to YAML file with optional comments"""
         filepath = Path(filepath)
         filepath.parent.mkdir(parents=True, exist_ok=True)
-        
-        # Ensure 'scene' is set to ['all'] if it was modified
-        if 'scene' in self._config:
-            sceneobjectssave = self._config['scene']
-            self._config['scene'] = ['all']
+
+        # Ensure 'scene.objects' is set to ['all'] if it was modified
+        if 'scene.objects' in self:
+            sceneobjectssave = self['scene.objects']
+            self['scene.objects'] = ['all']
 
         if include_comments:
             self._export_yaml_with_comments(filepath)
@@ -154,9 +163,9 @@ class Config():
             with open(filepath, 'w') as f:
                 yaml.dump(self._config, f, Dumper=yaml.SafeDumper, default_flow_style=False, indent=2, sort_keys=False)
 
-        # Restore original 'scene' value
-        if 'scene' in self._config:
-            self._config['scene'] = sceneobjectssave
+        # Restore original 'scene.objects' value
+        if 'scene.objects' in self._config:
+            self._config['scene.objects'] = sceneobjectssave
 
     def _export_yaml_with_comments(self, filepath):
         """Export YAML with comments preserved"""
@@ -215,7 +224,7 @@ class Config():
             f.write('\n'.join(lines))
             f.write('\n')  # Add final newline
 
-        print(f"Configuration exported to: {filepath}. Scene set to ['all'] for export.")
+        print(f"Configuration exported to: {filepath}. Scene.objects set to ['all'] for export.")
 
     def get(self, key, default=None):
         """Get configuration value with default if key not found"""

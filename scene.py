@@ -5,7 +5,7 @@ from utils import create_texture_from_rgba
 class Scene:
     def __init__(self, app):
         self.app = app
-        self.scene = app.config['scene']
+        self.scene = app.config['scene.objects']
         self.objects = []
         self.load()
 
@@ -21,10 +21,12 @@ class Scene:
                  0,  1,  0,  0,  # y -> z
                  0,  0,  0,  1)
 
-        self.add_object(CoordSys(app, vao_name='coordsys_WORLD', pos=(0,0,0.2), scale=0.1, coord_sys=coord_transform))
-        self.add_object(CoordSys(app, vao_name='coordsys_WORLD_OPENGL', pos=(0,0.5,0), scale=0.1))
-        self.add_object(CoordSys(app, vao_name='coordsys_MAP_ORIGIN', pos=(-1,-1,0), scale=0.1, coord_sys=coord_transform))
-        #self.add_object(CoordSys(app, vao_name='coordsys_MAP_ORIGIN_OPENGL', pos=(1,0,-1), rot=(0,0,0), scale=0.1))
+        if self.app.config.get('scene.coordsys_WORLD', True):
+            self.add_object(CoordSys(app, vao_name='coordsys_WORLD', pos=(0,0,0.2), scale=0.1, coord_sys=coord_transform))
+        if self.app.config.get('scene.coordsys_WORLD_OPENGL', False):
+            self.add_object(CoordSys(app, vao_name='coordsys_WORLD_OPENGL', pos=(0,0.5,0), scale=0.1))
+        if self.app.config.get('scene.coordsys_MAP_ORIGIN', True):
+            self.add_object(CoordSys(app, vao_name='coordsys_MAP_ORIGIN', pos=(-1,-1,0), scale=0.1, coord_sys=coord_transform))
 
         if 'grid' in self.scene:
             self.add_object(CubeStatic(app, coord_sys=coord_transform))    # total instanced cube size: 2x2x2

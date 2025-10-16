@@ -28,17 +28,17 @@ class Data:
             'terrain': {'func': self.load_terrain}
         }
 
-        if 'all' in app.config['scene']:
-            app.config['scene'] = list(self.load_dict.keys())
+        if 'all' in app.config['scene.objects']:
+            app.config['scene.objects'] = list(self.load_dict.keys())
         for key in self.load_dict:
-            if key in app.config['scene']:
+            if key in app.config['scene.objects']:
                 try:
                     self.load_dict[key]['func']()
                     pass
                 except Exception:
-                    if key in app.config['scene']: app.config['scene'].remove(key)
+                    if key in app.config['scene.objects']: app.config['scene.objects'].remove(key)
 
-        print(f'Successfully Loaded scene objects: {app.config["scene"]}')
+        print(f'Successfully Loaded scene objects: {app.config["scene.objects"]}')
 
     def load_plans(self):
         # plans.pkl: list of dictionaries with keys: 'path_extracted', 'path_corrected', 'path_interp_BSpline', 'path_interp_MinimumSnapTrajectory', etc.
@@ -218,7 +218,7 @@ class Data:
                     heightmap = np.load(heightmap_file)
                     print(f'Heightmap shape: {heightmap.shape}')
                     
-                    if 'grid' in self.app.config['scene']:
+                    if 'grid' in self.app.config['scene.objects']:
                         self.world_dimensions_original = self.world_dimensions
                         self.world_dimensions = np.array([127,63,31])
 
