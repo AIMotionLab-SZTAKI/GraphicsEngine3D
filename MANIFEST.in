@@ -1,0 +1,9 @@
+include README.md
+include LICENSE
+recursive-include GraphicsEngine3D *
+recursive-include GraphicsEngine3D/shaders *
+recursive-include GraphicsEngine3D/objects *
+recursive-include GraphicsEngine3D/demo *
+global-exclude __pycache__
+global-exclude *.pyc
+global-exclude .git*

@@ -1,0 +1,54 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "GraphicsEngine3D"
+version = "1.0.0"
+description = "A 3D graphics engine built with ModernGL and pygame"
+requires-python = ">=3.8"
+license = "MIT"
+authors = [
+    {name = "Adam Kovacs", email = "adam.kovacs.work@gmail.com"}
+]
+
+dependencies = [
+    "matplotlib",
+    "moderngl",
+    "numpy",
+    "numpy-stl",
+    "Pillow",
+    "pygame",
+    "PyGLM",
+    "PyOpenGL",
+    "pywavefront",
+    "PyYAML",
+    "scipy"
+]
+
+[project.urls]
+Homepage = "https://github.com/AIMotionLab-SZTAKI/GraphicsEngine3D"
+
+[project.scripts]
+GraphicsEngine3D = "GraphicsEngine3D.main:main"
+GraphicsEngine2D = "GraphicsEngine3D.GraphicsEngine2D:main"
+GE3D = "GraphicsEngine3D.main:main"
+GE2D = "GraphicsEngine3D.GraphicsEngine2D:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["GraphicsEngine3D*"]
+
+[tool.setuptools]
+include-package-data = true
+zip-safe = false
+
+[tool.setuptools.package-data]
+"GraphicsEngine3D" = [
+    "shaders/*",
+    "shaders/**/*",
+    "objects/*", 
+    "objects/**/*",
+    "demo/*",
+    "demo/**/*",
+]
