@@ -1,4 +1,3 @@
-from turtle import pos
 from model import *
 from utils import create_texture_from_rgba
 
@@ -20,6 +19,9 @@ class Scene:
                  0,  0,  1,  0,  # z -> y
                  0,  1,  0,  0,  # y -> z
                  0,  0,  0,  1)
+        
+        if self.app.config.get('scene.skybox', False):
+            self.add_object(SkyBox(app))
 
         if self.app.config.get('scene.coordsys_WORLD', True):
             self.add_object(CoordSys(app, vao_name='coordsys_WORLD', pos=(0,0,0.2), scale=0.1, coord_sys=coord_transform))

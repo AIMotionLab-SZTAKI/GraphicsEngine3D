@@ -1,11 +1,10 @@
 import moderngl as mgl
 import numpy as np
 import glm
-from pathlib import Path
 
 from OpenGL.GL import *
 
-from vbo import CubeVBO, CubeStaticInstanceVBO, CubeDynamicInstanceVBO, SplineVBO, CoordSysVBO, DefaultSTL_VBO, DefaultOBJ_VBO
+from vbo import *
 
 class BaseModel:
     def __init__(self, app, vao_name, tex_id, pos=(0, 0, 0), rot=(0, 0, 0), scale=(1, 1, 1), coord_sys=None, **kwargs):
@@ -113,10 +112,8 @@ class DefaultOBJ(BaseModel):
 
         # Add vbo if it does not exist
         app.mesh.vao.vbo.add(vbo_name, DefaultOBJ_VBO(app, file=path_obj))
-
-        # Add texture if tex_id != 'test' and it does not exist already
-        if tex_id != 'test' and tex_id not in app.mesh.texture.textures:
-            app.mesh.texture.textures[tex_id] = app.mesh.texture.get_texture(path=app.config['root_dir']/path_texture)  # Load texture
+        if path_texture is not None:
+            app.mesh.texture.add(tex_id, app.mesh.texture.get_texture(path=app.config['root_dir']/path_texture))
 
         # Init PROGRAM and VAO before calling super().init !!! (vao_name = program_name)
         app.mesh.vao.program.programs[vao_name] = app.mesh.vao.program.get_program('OBJ_default')
@@ -384,4 +381,28 @@ class DefaultSTL(BaseModel):
                 self.rot = self.get_rot()
             self.m_model = self.get_model_matrix()
 
-    
+
+class SkyBox(BaseModel):
+    def __init__(self, app, vao_name='skybox', tex_id='skybox',
+                 pos=(0, 0, 0), rot=(0, 0, 0), scale=(1, 1, 1)):
+        
+        app.mesh.vao.vbo.add(vao_name, SkyBoxVBO(app.ctx))
+        app.mesh.texture.add(tex_id, app.mesh.texture.get_texture_cube(app.config['root_dir']/f'objects/skybox'))
+
+        app.mesh.vao.program.programs[vao_name] = app.mesh.vao.program.get_program('advanced_skybox')
+        app.mesh.vao.vaos[vao_name] = app.mesh.vao.get_vao(program = app.mesh.vao.program.programs['skybox'],
+                                                           vbo = [app.mesh.vao.vbo.vbos[vao_name]])
+
+
+        super().__init__(app, vao_name, tex_id, pos, rot, scale)
+        self.on_init()
+
+    def update(self):
+        m_view = glm.mat4(glm.mat3(self.camera.m_view))
+        self.program['m_invProjView'].write(glm.inverse(self.camera.m_proj * m_view))
+
+    def on_init(self):
+        # texture
+        self.texture = self.app.mesh.texture.textures[self.tex_id]
+        self.program['u_texture_skybox'] = 0
+        self.texture.use(location=0)

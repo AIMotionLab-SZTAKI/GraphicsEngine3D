@@ -46,6 +46,7 @@ class Config():
             },
             'scene': {
                 'objects': ['all'],
+                'skybox': False,
                 'coordsys_WORLD': True,
                 'coordsys_MAP_ORIGIN': True,
                 'coordsys_WORLD_OPENGL': False,
@@ -79,6 +80,7 @@ class Config():
 
             'scene': 'Scene settings',
             'scene.objects': 'List of scene objects to be loaded ["all", "grid", "plans", "terrain"]',
+            'scene.skybox': 'Enable skybox rendering (true/false)',
             'scene.coordsys_WORLD': 'Show world coordinate system (true/false)',
             'scene.coordsys_MAP_ORIGIN': 'Show map origin coordinate system at (-1,-1,0) (true/false)',
             'scene.coordsys_WORLD_OPENGL': 'Show OpenGL world coordinate system (true/false)',

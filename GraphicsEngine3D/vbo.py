@@ -128,3 +128,16 @@ class CoordSysVBO(BaseVBO):
         super().__init__(ctx, reserve)
         self.format = '3f 4f'
         self.attribs = ['in_vert','in_color']
+
+class SkyBoxVBO(BaseVBO):
+    def __init__(self, ctx):
+        super().__init__(ctx)
+        self.format = '3f'
+        self.attribs = ['in_position']
+
+    def get_vertex_data(self):
+        # in clip space
+        z = 0.9999
+        vertices = [(-1, -1, z), (3, -1, z), (-1, 3, z)]
+        vertex_data = np.array(vertices, dtype='f4')
+        return vertex_data
