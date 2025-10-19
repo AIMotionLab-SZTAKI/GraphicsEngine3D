@@ -23,23 +23,38 @@ class Config():
     Features:
     - Nested dict-like access (config['key'] or config['section']['key'] or config['section.subsection.key'])
     - YAML file loading/saving with comments
-    - Config merging with precedence
+    - Config merging with precedence (YAML over defaults)
     """
     
-    def __init__(self, folder=None):
+    def __init__(self, config_path=None, default_config=None, comments=None, project_folder=None):
+        ''' 
+        Args:
+            config_path (str or Path): Path to the YAML config file.
+            default_config (dict): Default configuration values.
+            comments (dict): Comments for the configuration values.
+            workspace_folder (str or Path): Path to the workspace folder.
+        '''
         self._config = {}
         self._comments = {}
-        self._folder = Path(folder)
-        self._load_defaults()
+        self._project_folder = Path(project_folder) if project_folder else None
 
-        if folder:
-            self._load_from_yaml(folder)
-    
-    def _load_defaults(self):
-        """Load default configuration with comments"""
+        if default_config is None:
+            self._load_default_config()
+        else:
+            self._config = default_config
+
+        if comments is None:
+            self._load_default_comments()
+        else:
+            self._comments = comments
+
+        self._load_from_yaml(config_path)
+
+    def _load_default_config(self):
+        """Load default configuration values"""
         self._config = {
             'root_dir': Path(__file__).parents[0],
-            'folder': self._folder,
+            'folder': self._project_folder,
             'app': {
                 'window_size': [1920, 1080],
                 'background_color': [0.08, 0.16, 0.18]
@@ -68,8 +83,9 @@ class Config():
                 'specular_intensity': 1.0
             }
         }
-        
-        # Comments for each configuration entry
+
+    def _load_default_comments(self):
+        """Load default comments for configuration entries"""
         self._comments = {
             'folder': 'Project folder path',
             'root_dir': 'Root directory of GraphicsEngine3D project (immutable, always set during runtime)',
@@ -91,9 +107,12 @@ class Config():
             'clock.paused': 'Start with animation paused (true/false)',
         }
     
-    def _load_from_yaml(self, folder):
+    def _load_from_yaml(self, config_path=None):
         """Load configuration from YAML file in the specified folder"""
-        yaml_path = Path(folder) / 'config.yaml'
+        if config_path is not None:
+            yaml_path = Path(config_path)
+        else:
+            return
         if yaml_path.exists():
             try:
                 with open(yaml_path, 'r') as f:
@@ -110,7 +129,7 @@ class Config():
                 print(f"Error loading config from {yaml_path}: {e}")
                 print("Using default configuration")
         else:
-            print(f"No config.yaml found in {folder}, using defaults")
+            print(f"YAML config not found, using defaults")
     
     def _deep_merge(self, default, override):
         """Deep merge two dictionaries, with override taking precedence"""
@@ -233,7 +252,7 @@ class Config():
         print(f"Configuration exported to: {filepath}. Scene.objects set to ['all'] for export.")
 
     def get(self, key, default=None):
-        """Get configuration value with default if key not found"""
+        """Get configuration value, or set to default if key not found"""
         if not key in self:
             if default is not None:
                 self[key] = default
@@ -272,3 +291,7 @@ class Config():
 
     def items(self):
         return self._config.items()
+    
+    def set_comment(self, key, comment):
+        """Set comment for a specific configuration key"""
+        self._comments[key] = comment

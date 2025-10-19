@@ -20,7 +20,7 @@ from info_display import InfoDisplay
 class GraphicsEngine:
     def __init__(self, **kwargs): # kwargs: folder
         self.folder = Path(kwargs.get('folder', '.'))
-        self.config = Config(self.folder)
+        self.config = Config(self.folder/'config.yaml', project_folder=self.folder)
         self.WIN_SIZE = self.config.get('app.window_size', [1920, 1080])
         # init pygame modules
         pg.init()
