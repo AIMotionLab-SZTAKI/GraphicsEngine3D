@@ -264,7 +264,7 @@ class Spline(BaseModel):
                  path:np.ndarray=np.zeros(4), color=[1,1,1,1], **kwargs):
         
         # Init VBO and VAO before calling super().init !!! (vbo_name = vao_name)
-        app.mesh.vao.vbo.add(vao_name, SplineVBO(app.ctx, reserve = path.shape[0]*12))
+        app.mesh.vao.vbo.vbos[vao_name] = SplineVBO(app.ctx, reserve = path.shape[0]*12)
         app.mesh.vao.vaos[vao_name] = app.mesh.vao.get_vao(program = app.mesh.vao.program.programs['spline'], 
                                                            vbo = [app.mesh.vao.vbo.vbos[vao_name]])
         
