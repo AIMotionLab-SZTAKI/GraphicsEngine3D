@@ -61,7 +61,7 @@ class GraphicsEngine:
             elif (event.type == pg.KEYDOWN and event.key == pg.K_r): # R: Reset animation
                 self.clock.time_animation = 0
             elif (event.type == pg.KEYDOWN and event.key == pg.K_p): # P: Screenshot
-                self.take_screenshot()
+                self.take_screenshot(self.folder / 'screenshots')
             elif (event.type == pg.KEYDOWN and event.key == pg.K_SPACE): # Pause animation
                 self.clock.paused = not self.clock.paused
             elif (event.type == pg.KEYDOWN and event.key == pg.K_i): # I: Interpolate camera movement
@@ -101,6 +101,7 @@ class GraphicsEngine:
         image = pg.image.frombytes(data, self.WIN_SIZE, 'RGB',True)
         os.makedirs(folder, exist_ok=True)
         pg.image.save(image,f'{folder}/GraphicsEngine3D_{datetime.today().strftime("%Y%m%d_%H%M%S")}.png')
+        print('Screenshot saved to ', folder)
 
 def main():
     default_folder = Path(__file__).parents[0] / 'demo/demo_3D_3'
