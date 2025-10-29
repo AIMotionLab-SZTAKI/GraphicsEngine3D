@@ -288,7 +288,7 @@ class Spline(BaseModel):
 
     def render(self):
         self.update()
-        self.app.ctx.line_width = 4
+        self.app.ctx.line_width = self.app.config.get('scene.spline_line_width', 4)
         self.vao.render(mgl.LINE_STRIP)
         self.app.ctx.line_width = 1 # RESET
 

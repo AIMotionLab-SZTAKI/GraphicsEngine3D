@@ -14,5 +14,9 @@ __pycache__
 *.obj.bin
 *.obj.json
 
+# Terrain data
+terrain.obj
+terrain.png
+
 # Large files
 grid_seq.npy
