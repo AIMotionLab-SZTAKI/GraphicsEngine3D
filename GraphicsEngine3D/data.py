@@ -122,9 +122,12 @@ class Data:
         """Load meshgrid or heightmap and convert to terrain mesh with caching"""
         
         # Define file paths
+        terrain_folder_path = self.app.config['root_dir']/'objects/terrain'
         terrain_obj_path = self.app.config['root_dir']/'objects/terrain/terrain.obj'
         terrain_texture_path = self.app.config['root_dir']/'objects/terrain/terrain.png'
         cache_file = self.app.config['root_dir']/'objects/terrain/terrain_cache.obj.json'
+
+        os.makedirs(terrain_folder_path, exist_ok=True)
 
         def get_file_hash(filepath):
             """Calculate SHA256 hash of a file"""
