@@ -149,9 +149,9 @@ class Camera:
                 self.camera_interp_file = folder/'camera_interp.yaml'  # path to YAML file for interpolation data
 
                 self.load_camera_interp_data_from_yaml(self.camera_interp_file)
-                print(f"Camera interpolation data loaded from: {self.camera_interp_file}")
+                self.app.logger.info(f"Camera interpolation data loaded from: {self.camera_interp_file}")
             except Exception as e:
-                print(f"Error loading camera interpolation data: {e} Falling back to default interpolation data.")
+                self.app.logger.error(f"Error loading camera interpolation data: {e} Falling back to default interpolation data.")
                 self.load_demo_camera_interp_data()
 
     def interpolate(self):

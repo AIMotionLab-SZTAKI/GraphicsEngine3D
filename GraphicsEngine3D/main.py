@@ -16,11 +16,14 @@ from mesh import Mesh
 from scene import Scene
 from data import Data
 from info_display import InfoDisplay
+from utils import get_logger, get_log_level_str
 
 class GraphicsEngine:
     def __init__(self, **kwargs): # kwargs: folder
         self.folder = Path(kwargs.get('folder', '.'))
-        self.config = Config(self.folder/'config.yaml', project_folder=self.folder)
+        self.logger = get_logger('GraphicsEngine')
+        self.config = Config(self.folder/'config.yaml', project_folder=self.folder, logger=self.logger)
+        self.logger.setLevel(get_log_level_str(self.config.get('app.log_level', 'INFO')))
         self.WIN_SIZE = self.config.get('app.window_size', [1920, 1080])
         # init pygame modules
         pg.init()
@@ -101,7 +104,7 @@ class GraphicsEngine:
         image = pg.image.frombytes(data, self.WIN_SIZE, 'RGB',True)
         os.makedirs(folder, exist_ok=True)
         pg.image.save(image,f'{folder}/GraphicsEngine3D_{datetime.today().strftime("%Y%m%d_%H%M%S")}.png')
-        print('Screenshot saved to ', folder)
+        self.app.logger.info('Screenshot saved to ', folder)
 
 def main():
     default_folder = Path(__file__).parents[0] / 'demo/demo_3D_3'
@@ -114,7 +117,7 @@ def main():
     try:
         Path(kwargs['folder'])
     except:
-        print(f"Invalid folder path: {kwargs['folder']}. Using GraphicsEngine3D root directory instead.")      
+        print(f"[ERROR] Invalid folder path: {kwargs['folder']}. Using GraphicsEngine3D root directory instead.")
 
     app = GraphicsEngine(**kwargs)
     app.run()

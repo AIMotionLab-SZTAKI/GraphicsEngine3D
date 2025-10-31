@@ -114,7 +114,7 @@ class DefaultSTL_VBO(BaseVBO):
             return vertex_data
         
         except Exception as e:
-            print(f"Error loading STL file: {e}")
+            self.app.logger.error(f"Error loading STL file: {e}")
             return None
 
 class SplineVBO(BaseVBO):

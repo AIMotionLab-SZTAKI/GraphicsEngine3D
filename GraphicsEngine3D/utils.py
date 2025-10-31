@@ -1,3 +1,5 @@
+import sys
+import logging
 import numpy as np
 from PIL import Image
 import itertools
@@ -6,6 +8,30 @@ import pygame as pg
 import moderngl as mgl
 from pathlib import Path
 import pickle as pkl
+
+def get_logger(name: str = None, level='INFO'):
+    # Convert string level to logging constant
+    if isinstance(level, str):
+        level = get_log_level_str(level)
+
+    # Create logger
+    logger = logging.getLogger(name or __name__)
+    logger.setLevel(level)
+
+    # Create handler with formatter if not already present
+    if not logger.handlers:
+        handler = logging.StreamHandler(sys.stdout)
+        formatter = logging.Formatter(
+            "%(asctime)s | %(levelname)-8s | %(module)-8s | %(message)s",
+            datefmt="%H:%M:%S"
+        )
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
+
+    return logger
+
+def get_log_level_str(level:str):
+    return getattr(logging, level.upper(), logging.INFO) # Possible levels: DEBUG, INFO, WARNING, ERROR, CRITICAL
 
 def getColorMap():
     cmap = mpl.colormaps['magma'].resampled(255)

@@ -38,7 +38,7 @@ class Data:
                 except Exception:
                     if key in app.config['scene.objects']: app.config['scene.objects'].remove(key)
 
-        print(f'Successfully Loaded scene objects: {app.config["scene.objects"]}')
+        self.app.logger.info(f'Successfully Loaded scene objects: {app.config["scene.objects"]}')
 
     def load_plans(self):
         # plans.pkl: list of dictionaries with keys: 'path_extracted', 'path_corrected', 'path_interp_BSpline', 'path_interp_MinimumSnapTrajectory', etc.
@@ -46,7 +46,7 @@ class Data:
 
         plans_filenames = [fname for fname in self.folder_files if re.match(r'.*plans.*\.pkl', fname)]
         if len(plans_filenames) == 0:
-            print(f"No plans file found in {self.folder}. No objects will be loaded.")
+            self.app.logger.warning(f"No plans file found in {self.folder}. No objects will be loaded.")
             self.plans = None
         else:
             self.plans = []
@@ -56,37 +56,37 @@ class Data:
                         plans = pickle.load(f)
                         if isinstance(plans, list):
                             self.plans.extend(plans)
-                            print(f'Loaded {len(plans)} plans from {filename}')
+                            self.app.logger.info(f'Loaded {len(plans)} plans from {filename}')
                 except Exception as e:
                     traceback.print_exc()
                     raise e
             if len(self.plans) == 0:
-                print(f"No valid plans found in {self.folder}. No objects will be loaded.")
+                self.app.logger.warning(f"No valid plans found in {self.folder}. No objects will be loaded.")
                 self.plans = None
 
         try:
             self.world_dimensions = self.plans[0]['world_dimensions']
         except Exception as e:
             self.world_dimensions = np.array([1, 1, 1], dtype=np.float32)
-            print(f'No world dimensions found in obj_plans.pkl. Using default dimensions: {self.world_dimensions}')
+            self.app.logger.warning(f'No world dimensions found in obj_plans.pkl. Using default dimensions: {self.world_dimensions}')
 
         # The DefaultOBJ class does not handle the shrinking of the object, so we need to load the objects with the correct scale.
         # Iterate through the object plans and convert the paths to the correct format
         for obj_plan in self.plans:
 
-            print(f"Object plan {obj_plan['id']} loaded, type: {obj_plan['type']}, path shape: {obj_plan['path'].shape}, keys: {list(obj_plan.keys())}")
+            self.app.logger.debug(f"Object plan {obj_plan['id']} loaded, type: {obj_plan['type']}, path shape: {obj_plan['path'].shape}, keys: {list(obj_plan.keys())}")
             world_dim = obj_plan.get('world_dimensions', self.world_dimensions)
 
             for key in obj_plan:
                 if key.startswith('path') and not key.endswith('tcku'):
 
                     if np.issubdtype(obj_plan[key].dtype, np.floating):
-                        print('Path is of type float (SI units), centering/scaling the path')
+                        self.app.logger.debug('Path is of type float (SI units), centering/scaling the path')
                         obj_plan[key][:,1:4] = obj_plan[key][:,1:4] - world_dim/2 # center
                         obj_plan[key][:,1:4] = 2 * obj_plan[key][:,1:4] / np.max(world_dim).astype(np.float32)
 
                     if np.issubdtype(obj_plan[key].dtype, np.integer):
-                        print('Path is of type int (Grid units), converting to SI units and centering/scaling the path')
+                        self.app.logger.debug('Path is of type int (Grid units), converting to SI units and centering/scaling the path')
                         obj_plan[key] = obj_plan[key].astype(np.float32)
                         obj_plan[key][:,1:4] = 2 * (obj_plan[key][:,1:4] - np.array(world_dim/2)) / np.max(world_dim)
 
@@ -106,16 +106,16 @@ class Data:
             grid_static = np.load(self.folder/'grid_static.npz')['grid_static']
             grid_seq = np.load(self.folder/'grid_seq.npz')['grid_seq']
             self.grid_shape = grid_static.shape
-            print(f'grid_static shape: {grid_static.shape}, grid_seq shape: {grid_seq.shape}')
+            self.app.logger.info(f'grid_static shape: {grid_static.shape}, grid_seq shape: {grid_seq.shape}')
         except Exception as e:
-            print(f'grid_seq.npz OR grid_static.npz not found in {self.folder}. No grid will be loaded')
+            self.app.logger.warning(f'grid_seq.npz OR grid_static.npz not found in {self.folder}. No grid will be loaded')
             raise e
         
         try:
             self.grid_static_instancelist = convert_grid_static_to_instancelist(grid_static)
             self.grid_seq_dynamic_instancelist = convert_grid_seq_to_instancelist(grid_seq)
         except Exception as e:
-            print(f'Error during conversion')
+            self.app.logger.error(f'Error during conversion: {e}')
             raise e
 
     def load_terrain(self):
@@ -169,7 +169,7 @@ class Data:
             heightmap_file = self.folder/'heightmap.npy'
             
             if meshgrid_file.exists():
-                print("Checking meshgrid.npz for changes...")
+                self.app.logger.info("Checking meshgrid.npz for changes...")
                 current_hashes['meshgrid'] = get_file_hash(meshgrid_file)
                 
                 # Check if meshgrid changed
@@ -179,10 +179,10 @@ class Data:
                     needs_processing = True
                     source_type = 'meshgrid'
                 else:
-                    print("Meshgrid unchanged, using cached terrain files.")
+                    self.app.logger.info("Meshgrid unchanged, using cached terrain files.")
                     
             elif heightmap_file.exists():
-                print("Checking heightmap.npy for changes...")
+                self.app.logger.info("Checking heightmap.npy for changes...")
                 current_hashes['heightmap'] = get_file_hash(heightmap_file)
                 
                 # Also check world_dimensions if they affect terrain generation
@@ -200,13 +200,13 @@ class Data:
                     needs_processing = True
                     source_type = 'heightmap'
                 else:
-                    print("Heightmap and world dimensions unchanged, using cached terrain files.")
+                    self.app.logger.info("Heightmap and world dimensions unchanged, using cached terrain files.")
             else:
                 raise FileNotFoundError("Neither meshgrid.npz nor heightmap.npy found")
             
             # Process files only if needed
             if needs_processing:
-                print(f"Processing terrain from {source_type}...")
+                self.app.logger.info(f"Processing terrain from {source_type}...")
                 
                 if source_type == 'meshgrid':
                     # Load meshgrid data
@@ -214,12 +214,12 @@ class Data:
                     X = meshgrid_data['X']
                     Y = meshgrid_data['Y'] 
                     Z = meshgrid_data['Z']
-                    print(f'X range: [{X.min():.2f}, {X.max():.2f}], Y range: [{Y.min():.2f}, {Y.max():.2f}], Z range: [{Z.min():.2f}, {Z.max():.2f}]')
+                    self.app.logger.info(f'X range: [{X.min():.2f}, {X.max():.2f}], Y range: [{Y.min():.2f}, {Y.max():.2f}], Z range: [{Z.min():.2f}, {Z.max():.2f}]')
                     
                 else:  # heightmap
                     # Load and process heightmap
                     heightmap = np.load(heightmap_file)
-                    print(f'Heightmap shape: {heightmap.shape}')
+                    self.app.logger.info(f'Heightmap shape: {heightmap.shape}')
                     
                     if 'grid' in self.app.config['scene.objects']:
                         self.world_dimensions_original = self.world_dimensions
@@ -235,19 +235,19 @@ class Data:
                         y = np.linspace(-y_range/2, y_range/2, h)
                         X, Y = np.meshgrid(x, y)
                         Z = heightmap
-                        
-                        print(f'Using world_dimensions for meshgrid: {self.world_dimensions}, heightmap shape: {heightmap.shape}')
+
+                        self.app.logger.info(f'Using world_dimensions for meshgrid: {self.world_dimensions}, heightmap shape: {heightmap.shape}')
                     else:
                         h, w = heightmap.shape
                         x = np.linspace(-1, 1, w)
                         y = np.linspace(-1, 1, h)
                         X, Y = np.meshgrid(x, y)
                         Z = heightmap
-                        print(f'Using fallback normalized meshgrid for heightmap shape: {heightmap.shape}')
+                        self.app.logger.info(f'Using fallback normalized meshgrid for heightmap shape: {heightmap.shape}')
                 
                 # Generate terrain files and clean up old cache files
-                print("Generating terrain OBJ and texture files...")
-                convert_meshgrid_to_terrain_obj(X, Y, Z, terrain_obj_path) 
+                self.app.logger.info("Generating terrain OBJ and texture files...")
+                convert_meshgrid_to_terrain_obj(X, Y, Z, terrain_obj_path)
                 convert_heightmap_to_terrain_texture(Z, terrain_texture_path)
                 (self.app.config['root_dir']/'objects/terrain/terrain.obj.bin').unlink(missing_ok=True)
                 (self.app.config['root_dir']/'objects/terrain/terrain.obj.json').unlink(missing_ok=True)
@@ -265,8 +265,8 @@ class Data:
                     cache.pop('meshgrid_hash', None)  # Remove old meshgrid hash
                 
                 save_cache(cache)
-                print("Terrain processing complete and cached.")
+                self.app.logger.info("Terrain processing complete and cached.")
             
         except Exception as e:
-            print(f'Error loading terrain: {e}')
+            self.app.logger.error(f'Error loading terrain: {e}')
             raise e

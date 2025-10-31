@@ -1,6 +1,7 @@
 import yaml
 import copy
 from pathlib import Path
+import logging
 
 # Custom YAML representers and constructors for tuples
 def tuple_representer(dumper, data):
@@ -26,7 +27,7 @@ class Config():
     - Config merging with precedence (YAML over defaults)
     """
     
-    def __init__(self, config_path=None, default_config=None, comments=None, project_folder=None):
+    def __init__(self, config_path=None, default_config=None, comments=None, project_folder=None, logger=None):
         ''' 
         Args:
             config_path (str or Path): Path to the YAML config file.
@@ -34,6 +35,7 @@ class Config():
             comments (dict): Comments for the configuration values.
             workspace_folder (str or Path): Path to the workspace folder.
         '''
+        self._logger = logger
         self._config = {}
         self._comments = {}
         self._project_folder = Path(project_folder) if project_folder else None
@@ -50,12 +52,21 @@ class Config():
 
         self._load_from_yaml(config_path)
 
+    def log(self, message, level='INFO'):
+        """Log a message using the provided logger if available"""
+        if self._logger is not None:
+            level = getattr(logging, level.upper(), logging.INFO) # Possible levels: DEBUG, INFO, WARNING, ERROR, CRITICAL
+            self._logger.log(level, message)
+        else: 
+            print(f"[{level}] {message}")
+
     def _load_default_config(self):
         """Load default configuration values"""
         self._config = {
             'root_dir': Path(__file__).parents[0],
             'folder': self._project_folder,
             'app': {
+                'log_level': 'INFO',
                 'window_size': [1920, 1080],
                 'background_color': [0.08, 0.16, 0.18]
             },
@@ -91,6 +102,7 @@ class Config():
             'root_dir': 'Root directory of GraphicsEngine3D project (immutable, always set during runtime)',
 
             'app': 'Application settings',
+            'app.log_level': 'Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)',
             'app.window_size': 'Window size [width, height]',
             'app.background_color': 'Background color [r, g, b] (0-1 range)',
 
@@ -124,13 +136,13 @@ class Config():
                 if 'folder' in self._config: # Ensure folder is a Path object
                     self._config['folder'] = Path(self._config['folder'])
 
-                print(f"Configuration loaded from: {yaml_path}")
+                self.log(f"Configuration loaded from: {yaml_path}", level='INFO')
             except Exception as e:
-                print(f"Error loading config from {yaml_path}: {e}")
-                print("Using default configuration")
+                self.log(f"Error loading config from {yaml_path}: {e}", level='ERROR')
+                self.log("Using default configuration", level='ERROR')
         else:
-            print(f"YAML config not found, using defaults")
-    
+            self.log(f"YAML config not found, using defaults", level='INFO')
+
     def _deep_merge(self, default, override):
         """Deep merge two dictionaries, with override taking precedence"""
         result = copy.deepcopy(default)
@@ -249,7 +261,7 @@ class Config():
             f.write('\n'.join(lines))
             f.write('\n')  # Add final newline
 
-        print(f"Configuration exported to: {filepath}. Scene.objects set to ['all'] for export.")
+        self.log(f"Configuration exported to: {filepath}. Scene.objects set to ['all'] for export.", level='INFO')
 
     def get(self, key, default=None):
         """Get configuration value, or set to default if key not found"""
