@@ -51,6 +51,7 @@ class Scene:
                     
                     self.add_object(Spline(app, vao_name='drone_spline_'+obj_plan['id'], path=obj_plan['path'], color=color,
                                            coord_sys=coord_transform))
+
                 elif obj_plan['type'] == 'uav':
                     tex_id = 'uav' # same texture for all uavs
                     color = obj_plan['color'] if 'color' in obj_plan else [1,0,0,1]
@@ -77,6 +78,7 @@ class Scene:
                     normalize_dimensions = 'unit' # rescale to unit cube
 
                 alpha = obj_plan['color'][3] if isinstance(obj_plan['color'], (list, tuple, np.ndarray)) and len(obj_plan['color'])==4 else 1.0
+                alpha = 1 if obj_plan['type'] in ['drone', 'uav'] else alpha
 
                 self.add_object(DefaultOBJ(app, vao_name=obj_plan['id'],
                                             vbo_name=obj_plan['type'],
